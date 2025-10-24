@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}EchoDent{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
+  <script src="{{ url_for('static', filename='js/theme-toggle.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body>
+  <header class="main-header">
+    <div class="layout-container inner">
+      <div class="brand">EchoDent</div>
+      <nav>
+        <button type="button" class="btn btn-secondary" data-theme-toggle>Mudar Tema</button>
+        {% if current_user.is_authenticated %}
+          <span class="ml-4">Olá, {{ current_user.nome_completo or current_user.username }}</span>
+          <a class="btn btn-secondary ml-2" href="{{ url_for('auth_bp.logout') }}">Sair</a>
+        {% else %}
+          <a class="btn btn-secondary" href="{{ url_for('auth_bp.login') }}">Entrar</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="layout-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages mb-3">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category | default('info') }} mb-2" role="alert">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+  
+  <!-- Modal de Erro reutilizável (inicialmente oculto) -->
+  <div id="error-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card">
+      <h3 class="modal-title">Erro</h3>
+      <div class="alert alert-danger" id="error-modal-message">Ocorreu um erro.</div>
+      <pre id="error-modal-text" class="pre-wrap"></pre>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="copy-error-btn">Copiar Erro</button>
+        <button type="button" class="btn btn-secondary" data-close-modal>Fechar</button>
+      </div>
+    </div>
+  </div>
+  <!-- HTMX local (offline-first) -->
+  <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+</body>
+</html>

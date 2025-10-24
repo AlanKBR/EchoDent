@@ -1,0 +1,11 @@
+<div class="item-plano-row">
+  <div class="item-info">
+    <strong>{{ procedimento.nome }}</strong>
+  </div>
+  <input type="hidden" name="procedimento_id" value="{{ procedimento.id }}" />
+  <label>
+    Valor:
+    <input type="number" step="0.01" name="valor_cobrado" value="{{ procedimento.valor_padrao }}" />
+  </label>
+  <button type="button" class="btn btn-secondary" data-remove-row>Remover</button>
+</div>

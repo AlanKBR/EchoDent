@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Imprimir Atestado - {{ paciente.nome_completo }}{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">Imprimir Atestado — {{ paciente.nome_completo }}</div>
+    <div class="card-body">
+      <form method="post">
+        <div class="mb-3">
+          <label for="dias">Dias de afastamento</label><br />
+          <input id="dias" name="dias" type="number" min="1" value="1" required />
+        </div>
+        <div class="mb-3">
+          <label><input type="checkbox" name="autorizou_cid" /> Paciente autorizou exibição do CID</label>
+        </div>
+        <div class="mb-3">
+          <label for="cid">CID (opcional)</label><br />
+          <input id="cid" name="cid" type="text" />
+        </div>
+        <div class="mb-3">
+          <label for="observacoes">Observações (opcional)</label><br />
+          <textarea id="observacoes" name="observacoes" rows="4" cols="60"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="profissional_nome">Nome do Profissional</label><br />
+          <input id="profissional_nome" name="profissional_nome" type="text" value="{{ (current_user.nome_completo if current_user else '') or '' }}" />
+        </div>
+        <div class="mb-3">
+          <label for="cro_registro">CRO/Registro</label><br />
+          <input id="cro_registro" name="cro_registro" type="text" value="{{ (current_user.cro_registro if current_user else '') or '' }}" />
+        </div>
+        <div class="mb-3">
+          <label for="conselho">Conselho (opcional)</label><br />
+          <input id="conselho" name="conselho" type="text" value="{{ current_user.cro_registro or '' }}" />
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Gerar PDF</button>
+          <a href="{{ url_for('paciente_bp.detalhe', paciente_id=paciente.id) }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

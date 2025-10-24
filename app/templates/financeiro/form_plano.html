@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Novo Orçamento{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">Novo Orçamento para: {{ paciente.nome_completo }}</div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label for="procedimento_select">Adicionar procedimento</label>
+        <select id="procedimento_select" name="procedimento_select">
+          {% for proc in procedimentos %}
+          <option value="{{ proc.id }}">{{ proc.nome }} ({{ proc.valor_padrao }})</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="btn btn-secondary"
+                hx-get="{{ url_for('financeiro_bp.add_procedimento_fragment') }}"
+                hx-include="[name='procedimento_select']"
+                hx-target="#lista-itens"
+                hx-swap="beforeend">
+          Adicionar Procedimento
+        </button>
+      </div>
+
+      <form method="POST">
+        <div id="lista-itens"></div>
+
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Salvar Orçamento</button>
+          <a href="{{ url_for('paciente_bp.detalhe', paciente_id=paciente.id) }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

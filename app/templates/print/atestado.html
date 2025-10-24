@@ -1,0 +1,54 @@
+{% extends 'print/print_base.html' %}
+
+{% block title %}Atestado - {{ paciente.nome_completo }}{% endblock %}
+
+
+{% block content %}
+<div class="print-preview-wrapper card">
+	<section class="card-body">
+		<h1>Atestado</h1>
+		<p><strong>Paciente:</strong> {{ paciente.nome_completo }}</p>
+		<p><strong>Data:</strong> {{ data_emissao }}</p>
+		<hr />
+		<p>Atesto para os devidos fins que o(a) paciente acima esteve sob cuidados odontológicos nesta data e necessita de {{ dias }} dia(s) de afastamento.</p>
+
+		{% if autorizou_cid and cid %}
+			<p><strong>CID:</strong> {{ cid }}</p>
+		{% endif %}
+
+		{% if observacoes %}
+			<p><strong>Observações:</strong> {{ observacoes }}</p>
+		{% endif %}
+
+			<div class="signature">
+			<p>__________________________________________</p>
+			<p>{{ profissional_nome or '' }}</p>
+			<p>{{ conselho or '' }}</p>
+		</div>
+	</section>
+
+		<hr class="via-separator" />
+
+	<section class="card-body">
+		<h1>Atestado (2ª via)</h1>
+		<p><strong>Paciente:</strong> {{ paciente.nome_completo }}</p>
+		<p><strong>Data:</strong> {{ data_emissao }}</p>
+		<hr />
+		<p>Atesto para os devidos fins que o(a) paciente acima esteve sob cuidados odontológicos nesta data e necessita de {{ dias }} dia(s) de afastamento.</p>
+
+		{% if autorizou_cid and cid %}
+			<p><strong>CID:</strong> {{ cid }}</p>
+		{% endif %}
+
+		{% if observacoes %}
+			<p><strong>Observações:</strong> {{ observacoes }}</p>
+		{% endif %}
+
+			<div class="signature">
+			<p>__________________________________________</p>
+			<p>{{ profissional_nome or '' }}</p>
+			<p>{{ conselho or '' }}</p>
+		</div>
+	</section>
+</div>
+{% endblock %}

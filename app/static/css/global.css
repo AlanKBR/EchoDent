@@ -1,0 +1,396 @@
+/*
+	EchoDent UI — Fundação de Design Tokens e Estilos Globais
+	Objetivo: Base clean, moderna e profissional (SaaS) com suporte a tema claro/escuro.
+	Observação: offline-first; sem imports externos de fontes.
+*/
+
+/* ===============================
+	 Parte 1 — Design Tokens (Light)
+	 =============================== */
+:root {
+	/* Paleta Primária — Verde Menta */
+	--color-primary-light: #34d399; /* mint/green 400 */
+	--color-primary-main:  #10b981; /* mint/green 500 */
+	--color-primary-dark:  #059669; /* mint/green 600 */
+
+	/* Superfícies (Light) */
+	--color-background:    #fafafa; /* fundo da página */
+	--color-surface-card:  #ffffff; /* cartões/superfícies elevadas */
+
+	/* Texto */
+	--color-text-primary:   #0f172a; /* slate-900 */
+	--color-text-secondary: #475569; /* slate-600 */
+	--color-text-on-primary:#ffffff; /* texto sobre botão primário */
+
+	/* Bordas */
+	--color-border:        #e5e7eb; /* gray-200 */
+	--color-border-focus:  #99f6e4; /* teal-200 (realce de foco) */
+
+	/* Tipografia (Offline-First) */
+	--font-family-system: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "Liberation Sans", sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+
+	/* Geometria e Movimento */
+	--border-radius-medium: 10px;
+	--shadow-medium: 0 6px 20px rgba(2, 6, 23, 0.08); /* sombra suave profissional */
+	--transition-short: 180ms ease;
+
+		/* Espaçamento (escala) */
+		--space-1: 0.25rem; /* 4px */
+		--space-2: 0.5rem;  /* 8px */
+		--space-3: 0.75rem; /* 12px */
+		--space-4: 1rem;    /* 16px */
+		--space-5: 1.25rem; /* 20px */
+		--space-6: 1.5rem;  /* 24px */
+
+		/* Cores de Feedback */
+		--color-warning-bg:     #fff7ed; /* amber-50 */
+		--color-warning-border: #fed7aa; /* orange-200 */
+		--color-warning-text:   #7c2d12; /* amber-900 */
+
+		/* Cores de Erro (Danger) */
+		--color-danger-bg:     #fef2f2; /* red-50 */
+		--color-danger-border: #fecaca; /* red-200 */
+		--color-danger-text:   #7f1d1d; /* red-900 */
+
+		/* Cores de Informação (Info) */
+		--color-info-bg:     #eff6ff; /* blue-50 */
+		--color-info-border: #bfdbfe; /* blue-200 */
+		--color-info-text:   #1e3a8a; /* blue-900 */
+}
+
+/* ================================
+	 Parte 2 — Design Tokens (Dark)
+	 ================================ */
+[data-theme-mode="dark"] {
+	/* Superfícies (Dark) */
+	--color-background:   #0b1220; /* navy/black suave */
+	--color-surface-card: #0f172a; /* slate-900 */
+
+	/* Texto (Dark) */
+	--color-text-primary:   #e5e7eb; /* gray-200 */
+	--color-text-secondary: #94a3b8; /* slate-400 */
+
+	/* Bordas (Dark) */
+	--color-border:       #1f2937; /* gray-800 */
+	--color-border-focus: #0ea5e9; /* azul sutil para foco no dark */
+
+		/* Feedback (Dark) */
+		--color-warning-bg:     #2b1c0f; /* escuro quente */
+		--color-warning-border: #b45309; /* amber-700 */
+		--color-warning-text:   #fed7aa; /* orange-200 */
+
+		/* Erro (Danger - Dark) */
+		--color-danger-bg:     #2a1212; /* escuro avermelhado */
+		--color-danger-border: #ef4444; /* red-500 */
+		--color-danger-text:   #fecaca; /* red-200 */
+
+		/* Informação (Info - Dark) */
+		--color-info-bg:     #0b2540; /* azul profundo */
+		--color-info-border: #3b82f6; /* blue-500 */
+		--color-info-text:   #bfdbfe; /* blue-200 */
+}
+
+/* =====================================
+	 Parte 3 — Reset e Estilos de Fundação
+	 ===================================== */
+*, *::before, *::after {
+	box-sizing: border-box;
+}
+
+html, body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: var(--font-family-system);
+	background-color: var(--color-background);
+	color: var(--color-text-primary);
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	transition: background-color var(--transition-short),
+							color var(--transition-short);
+}
+
+/* Tipografia básica */
+h1, h2, h3, h4, h5, h6 {
+	margin: 0 0 0.5rem;
+	color: var(--color-text-primary);
+	line-height: 1.2;
+}
+
+p {
+	margin: 0 0 1rem;
+	color: var(--color-text-secondary);
+}
+
+a {
+	color: var(--color-primary-dark);
+	text-decoration: none;
+	transition: color var(--transition-short);
+}
+
+a:hover {
+	color: var(--color-primary-main);
+}
+
+/* Superfície padrão de cartões/contêineres */
+.card, .surface {
+	background-color: var(--color-surface-card);
+	color: var(--color-text-primary);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-medium);
+	box-shadow: var(--shadow-medium);
+}
+
+/* Estrutura de cartões */
+.card-header {
+	padding: var(--space-3) var(--space-4);
+	border-bottom: 1px solid var(--color-border);
+	font-weight: 600;
+}
+
+.card-body {
+	padding: var(--space-4);
+}
+
+/* Formulários */
+input, textarea, select {
+	font-family: inherit;
+	color: var(--color-text-primary);
+	background-color: var(--color-surface-card);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-medium);
+	padding: 0.563rem 0.75rem; /* 9px 12px aprox. */
+	transition: border-color var(--transition-short),
+							box-shadow var(--transition-short),
+							background-color var(--transition-short),
+							color var(--transition-short);
+}
+
+input::placeholder, textarea::placeholder {
+	color: var(--color-text-secondary);
+}
+
+input:focus, textarea:focus, select:focus {
+	outline: none;
+	border-color: var(--color-border-focus);
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-border-focus) 35%, transparent);
+}
+
+/* Botão Primário */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	height: 40px;
+	padding: 0 16px;
+	font-weight: 600;
+	border: 1px solid transparent;
+	border-radius: var(--border-radius-medium);
+	cursor: pointer;
+	transition: background-color var(--transition-short),
+							color var(--transition-short),
+							transform var(--transition-short),
+							box-shadow var(--transition-short),
+							border-color var(--transition-short);
+}
+
+.btn-primary {
+	color: var(--color-text-on-primary);
+	background-color: var(--color-primary-main);
+	box-shadow: var(--shadow-medium);
+}
+
+.btn-primary:hover {
+	background-color: var(--color-primary-dark);
+}
+
+.btn-primary:active {
+	transform: translateY(1px);
+}
+
+.btn-primary:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-border-focus) 45%, transparent), var(--shadow-medium);
+}
+
+/* Botão Secundário (outline/ghost) */
+.btn-secondary {
+	color: var(--color-text-secondary);
+	background-color: transparent;
+	border-color: var(--color-border);
+}
+
+.btn-secondary:hover {
+	color: var(--color-text-primary);
+	border-color: var(--color-primary-main);
+}
+
+.btn-secondary:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-border-focus) 35%, transparent), var(--shadow-medium);
+}
+
+/* Layout container e header principal */
+.layout-container {
+	width: 100%;
+	max-width: 1100px;
+	margin: 0 auto;
+	padding: var(--space-4);
+}
+
+.main-header {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	background-color: var(--color-surface-card);
+	border-bottom: 1px solid var(--color-border);
+	box-shadow: var(--shadow-medium);
+}
+
+.main-header .inner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 56px;
+}
+
+.brand {
+	font-weight: 700;
+}
+
+/* Tabelas básicas */
+table {
+	width: 100%;
+	border-collapse: collapse;
+	background-color: var(--color-surface-card);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-medium);
+	overflow: hidden;
+}
+
+th, td {
+	padding: var(--space-3);
+	text-align: left;
+	border-top: 1px solid var(--color-border);
+}
+
+thead th {
+	background-color: color-mix(in oklab, var(--color-border) 40%, var(--color-surface-card));
+	border-top: none;
+}
+
+/* Alertas baseados em tokens */
+.alert {
+	padding: var(--space-3) var(--space-4);
+	border-radius: var(--border-radius-medium);
+	border: 1px solid var(--color-border);
+}
+
+.alert-warning {
+	background-color: var(--color-warning-bg);
+	border-color: var(--color-warning-border);
+	color: var(--color-warning-text);
+	font-weight: 600;
+}
+
+/* Alerta de erro (danger) */
+.alert-danger {
+	background-color: var(--color-danger-bg);
+	border-color: var(--color-danger-border);
+	color: var(--color-danger-text);
+	font-weight: 700;
+}
+
+/* Alerta de sucesso (success) */
+.alert-success {
+	background-color: var(--color-primary-light);
+	border-color: var(--color-primary-main);
+	color: var(--color-primary-main);
+	font-weight: 700;
+}
+
+/* Alerta informativo (info) */
+.alert-info {
+	background-color: var(--color-info-bg);
+	border-color: var(--color-info-border);
+	color: var(--color-info-text);
+	font-weight: 600;
+}
+
+/* Modal de Erro (Overlay + Card) */
+.modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	background: color-mix(in oklab, #000 55%, transparent);
+	display: none; /* ativar com .is-visible */
+	align-items: center;
+	justify-content: center;
+}
+
+.modal-overlay.is-visible { display: flex; }
+
+.modal-card {
+	background: var(--color-surface-card);
+	color: var(--color-text-primary);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-medium);
+	box-shadow: var(--shadow-medium);
+	max-width: 560px;
+	width: min(92vw, 560px);
+	padding: var(--space-4);
+}
+
+.modal-card .modal-title {
+	margin: 0 0 var(--space-3);
+	font-weight: 700;
+}
+
+.modal-card .modal-actions {
+	margin-top: var(--space-4);
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-2);
+}
+
+/* Modal body scroll area for long error logs */
+#error-modal-text, .modal-body-scroll {
+	max-height: 300px;
+	overflow-y: auto;
+	white-space: pre-wrap; /* wrap long lines */
+}
+
+/* Utilitários */
+.text-right { text-align: right; }
+.mt-2 { margin-top: var(--space-2); }
+.mb-2 { margin-bottom: var(--space-2); }
+.ml-2 { margin-left: var(--space-2); }
+.ml-4 { margin-left: var(--space-4); }
+.flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: var(--space-2); }
+.max-w-480 { max-width: 480px; }
+.w-100 { width: 100%; }
+
+/* Utilitários mínimos úteis */
+.pre-wrap { white-space: pre-wrap; }
+.mt-3 { margin-top: 1rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+/* Impressão: neutralizar visual de preview para PDF */
+@media print {
+	.print-preview-wrapper.card {
+		border: none !important;
+		box-shadow: none !important;
+		padding: 0 !important;
+		background: transparent !important;
+	}
+	.print-preview-wrapper .card-body {
+		padding: 0 !important;
+	}
+}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - EchoDent{% endblock %}
+
+{% block content %}
+  <div class="card max-w-480 mx-auto" >
+    <div class="card-header">Entrar</div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="mb-3">
+          <label for="username">Usuário</label>
+          <input type="text" id="username" name="username" required />
+        </div>
+        <div class="mb-3">
+          <label for="password">Senha</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{# Fragmento HTMX: não estende base.html #}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Paciente</th>
+      <th>Horário</th>
+      <th>Status</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if agendamentos %}
+      {% for agendamento in agendamentos %}
+        <tr>
+          <td>{{ agendamento.paciente.nome_completo }}</td>
+          <td>
+            {{ agendamento.start_time.strftime('%H:%M') }} - {{ agendamento.end_time.strftime('%H:%M') }}
+          </td>
+          <td>{{ agendamento.status.name if agendamento.status else '' }}</td>
+          <td>
+            {% if agendamento.status == StatusAgendamentoEnum.CONFIRMADO %}
+        <button type="button"
+          class="btn btn-primary"
+                      hx-post="{{ url_for('agendamento_bp.update_status', agendamento_id=agendamento.id) }}"
+                      hx-vals='{"status": "SALA_ESPERA"}'
+                      hx-target="#sala-espera-widget">
+                Confirmar Chegada
+              </button>
+            {% elif agendamento.status == StatusAgendamentoEnum.SALA_ESPERA %}
+        <button type="button"
+          class="btn btn-primary"
+                      hx-post="{{ url_for('agendamento_bp.update_status', agendamento_id=agendamento.id) }}"
+                      hx-vals='{"status": "FINALIZADO"}'
+                      hx-target="#sala-espera-widget">
+                Finalizar Atendimento
+              </button>
+            {% else %}
+              <!-- Sem ações para este status -->
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        <td colspan="4">Nenhum agendamento para hoje.</td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Pacientes - Lista{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">Pacientes</div>
+    <div class="card-body">
+      <p class="mb-3">
+        <a href="{{ url_for('paciente_bp.novo') }}" class="btn btn-secondary">Novo Paciente</a>
+      </p>
+      <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>Email</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pacientes %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td>
+          <a href="{{ url_for('paciente_bp.detalhe', paciente_id=p.id) }}">
+            {{ p.nome_completo }}
+          </a>
+        </td>
+        <td>{{ p.telefone or '' }}</td>
+        <td>{{ p.email or '' }}</td>
+        <td>
+          <a href="{{ url_for('paciente_bp.editar', id=p.id) }}" class="btn btn-secondary">Editar</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">Nenhum paciente cadastrado.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

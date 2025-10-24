@@ -1,0 +1,40 @@
+{% extends 'print/print_base.html' %}
+
+{% block title %}Receita - {{ paciente.nome_completo }}{% endblock %}
+
+
+{% block content %}
+<div class="print-preview-wrapper card">
+	<section class="card-body">
+		<h1>Receita</h1>
+		<p><strong>Paciente:</strong> {{ paciente.nome_completo }}</p>
+		<p><strong>Data:</strong> {{ data_emissao }}</p>
+		<hr />
+			<div>
+				<pre class="pre-wrap">{{ texto }}</pre>
+			</div>
+			<div class="signature">
+			<p>__________________________________________</p>
+			<p>{{ profissional_nome or '' }}</p>
+			<p>{{ conselho or '' }}</p>
+		</div>
+	</section>
+
+		<hr class="via-separator" />
+
+	<section class="card-body">
+		<h1>Receita (2ª via)</h1>
+		<p><strong>Paciente:</strong> {{ paciente.nome_completo }}</p>
+		<p><strong>Data:</strong> {{ data_emissao }}</p>
+		<hr />
+			<div>
+				<pre class="pre-wrap">{{ texto }}</pre>
+			</div>
+			<div class="signature">
+			<p>__________________________________________</p>
+			<p>{{ profissional_nome or '' }}</p>
+			<p>{{ conselho or '' }}</p>
+		</div>
+	</section>
+</div>
+{% endblock %}

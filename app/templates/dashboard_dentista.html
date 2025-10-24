@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Dentista{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">Dashboard - Dentista</div>
+    <div class="card-body">
+      <a href="{{ url_for('paciente_bp.lista') }}" class="btn btn-secondary">Ver Pacientes</a>
+    </div>
+  </div>
+{% endblock %}

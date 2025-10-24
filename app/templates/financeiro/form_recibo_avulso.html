@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Recibo Avulso{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">Registrar Recibo Avulso para: {{ paciente.nome_completo }}</div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="mb-3">
+          <label>
+            Valor
+            <input type="number" name="valor" step="0.01" required />
+          </label>
+        </div>
+        <div class="mb-3">
+          <label>
+            Motivo/Descrição
+            <input type="text" name="motivo_descricao" required />
+          </label>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Registrar</button>
+          <a href="{{ url_for('paciente_bp.detalhe', paciente_id=paciente.id) }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

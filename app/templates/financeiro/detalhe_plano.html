@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Plano #{{ plano.id }}{% endblock %}
+
+{% block content %}
+  <div class="mb-3">
+    <a href="{{ url_for('paciente_bp.detalhe', paciente_id=plano.paciente_id) }}" class="btn btn-secondary">&larr; Voltar ao Paciente</a>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Plano de Tratamento #{{ plano.id }}</div>
+    <div class="card-body">
+      <ul>
+        <li><strong>Status:</strong> {{ plano.status }}</li>
+        <li><strong>Subtotal:</strong> {{ plano.subtotal }}</li>
+        <li><strong>Desconto:</strong> {{ plano.desconto }}</li>
+        <li><strong>Valor Total:</strong> {{ plano.valor_total }}</li>
+        <li><strong>Criado em:</strong> {{ plano.created_at }}</li>
+      </ul>
+      {% if saldo is not none %}
+      <div class="mt-3"><strong>Saldo Devedor:</strong> {{ saldo }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if plano.status == 'PROPOSTO' %}
+  <div class="card mb-3">
+    <div class="card-header">Aprovar Plano</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('financeiro_bp.aprovar_plano', plano_id=plano.id) }}">
+        <label>
+          Desconto:
+          <input type="number" step="0.01" name="desconto" value="0" />
+        </label>
+        <button type="submit" class="btn btn-primary">Aprovar</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if plano.status in ['APROVADO', 'CONCLUIDO'] %}
+  <div class="card mb-3">
+    <div class="card-header">Registrar Pagamento</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('financeiro_bp.pagar_plano', plano_id=plano.id) }}">
+        <label>
+          Valor:
+          <input type="number" step="0.01" name="valor" required />
+        </label>
+        <label>
+          Método:
+          <select name="metodo_pagamento">
+            <option value="DINHEIRO">Dinheiro</option>
+            <option value="PIX">PIX</option>
+            <option value="CARTAO">Cartão</option>
+            <option value="TRANSFERENCIA">Transferência</option>
+          </select>
+        </label>
+        <button type="submit" class="btn btn-primary">Registrar</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card mb-3">
+    <div class="card-header">Itens</div>
+    <div class="card-body">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Procedimento</th>
+            <th>Valor Cobrado</th>
+            <th>Dente/Face</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in plano.itens %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.procedimento.nome }}</td>
+            <td>{{ item.valor_cobrado }}</td>
+            <td>{{ item.descricao_dente_face or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4">Nenhum item neste plano.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Lançamentos</div>
+    <div class="card-body">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Valor</th>
+            <th>Método</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in plano.lancamentos %}
+          <tr>
+            <td>{{ l.id }}</td>
+            <td>{{ l.valor }}</td>
+            <td>{{ l.metodo_pagamento }}</td>
+            <td>{{ l.data_lancamento }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4">Nenhum lançamento registrado.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

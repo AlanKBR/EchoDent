@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Anamnese - {{ paciente.nome_completo }}{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">Anamnese — {{ paciente.nome_completo }}</div>
+    <div class="card-body">
+      <form method="post">
+        <!-- Progressive Disclosure: Alergias -->
+        <fieldset class="mb-3">
+          <legend>Alergias</legend>
+          <label>Possui Alergias?</label>
+          <input type="radio"
+                 name="possui_alergia"
+                 value="nao"
+                 hx-target="#detalhes-alergia"
+                 hx-swap="innerHTML"
+                 hx-get="{{ url_for('paciente_bp.anamnese_fragment', field='none') }}"
+                 checked> Não
+          <input type="radio"
+                 name="possui_alergia"
+                 value="sim"
+                 hx-target="#detalhes-alergia"
+                 hx-swap="innerHTML"
+                 hx-get="{{ url_for('paciente_bp.anamnese_fragment', field='alergias') }}"> Sim
+          <div id="detalhes-alergia"></div>
+        </fieldset>
+
+        <!-- Progressive Disclosure: Medicamentos de uso contínuo -->
+        <fieldset class="mb-3">
+          <legend>Medicamentos de uso contínuo</legend>
+          <label>Usa medicamentos continuamente?</label>
+          <input type="radio"
+                 name="usa_medicamentos"
+                 value="nao"
+                 hx-target="#detalhes-medicamentos"
+                 hx-swap="innerHTML"
+                 hx-get="{{ url_for('paciente_bp.anamnese_fragment', field='none') }}"
+                 checked> Não
+          <input type="radio"
+                 name="usa_medicamentos"
+                 value="sim"
+                 hx-target="#detalhes-medicamentos"
+                 hx-swap="innerHTML"
+                 hx-get="{{ url_for('paciente_bp.anamnese_fragment', field='medicamentos') }}"> Sim
+          <div id="detalhes-medicamentos"></div>
+        </fieldset>
+
+        <!-- Histórico de Doenças (campo aberto simples) -->
+        <fieldset class="mb-3">
+          <legend>Histórico de Doenças</legend>
+          <textarea name="historico_doencas" rows="4" cols="60">{{ (anamnese.historico_doencas if anamnese else '') or '' }}</textarea>
+        </fieldset>
+
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">Salvar Anamnese</button>
+          <a href="{{ url_for('paciente_bp.detalhe', paciente_id=paciente.id) }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
