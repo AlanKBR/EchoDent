@@ -97,4 +97,27 @@
       if (row) row.remove();
     }
   });
+
+  // Sidebar + User menu toggles
+  document.addEventListener('DOMContentLoaded', () => {
+    // Initialize sidebar state from localStorage
+    try {
+      const saved = localStorage.getItem('echodent_sidebar_expanded');
+      if (saved === 'true') {
+        document.body.classList.add('sidebar-expanded');
+      }
+    } catch (_) {}
+
+    // Toggle Sidebar expand/collapse
+    const sidebarToggle = qs('#sidebar-toggle-btn');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        document.body.classList.toggle('sidebar-expanded');
+        // Persist state
+        try {
+          localStorage.setItem('echodent_sidebar_expanded', String(document.body.classList.contains('sidebar-expanded')));
+        } catch (_) {}
+      });
+    }
+  });
 })();

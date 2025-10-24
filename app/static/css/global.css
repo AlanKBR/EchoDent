@@ -394,3 +394,170 @@ thead th {
 		padding: 0 !important;
 	}
 }
+
+/* ================================
+	Parte 4 — Sidebar (Desktop Only)
+	=============================== */
+:root {
+	--sidebar-collapsed-width: 68px;
+	--sidebar-expanded-width: 240px;
+}
+
+/* Estrutura base do layout com sidebar: apenas no desktop */
+@media (min-width: 1024px) {
+	body {
+		display: flex;
+	}
+	.main-content-wrapper {
+		flex: 1;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.sidebar {
+		width: var(--sidebar-collapsed-width);
+		background-color: var(--color-surface-card);
+		border-right: 1px solid var(--color-border);
+		box-shadow: var(--shadow-medium);
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		position: sticky;
+		top: 0;
+		align-self: flex-start;
+		height: 100vh;
+		padding: var(--space-4) var(--space-2);
+		transition: width var(--transition-short),
+						padding var(--transition-short);
+	}
+
+	body.sidebar-expanded .sidebar {
+		width: var(--sidebar-expanded-width);
+		padding-right: var(--space-4);
+	}
+
+	.sidebar-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between; /* logo à esquerda, ações à direita */
+		height: 48px;
+		padding: 0 var(--space-2);
+		margin-bottom: var(--space-4);
+	}
+
+	.sidebar-header .header-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+	/* Garantir que o botão de tema no header apareça no expandido */
+	body.sidebar-expanded .sidebar .header-actions .header-theme-toggle {
+		display: inline-flex;
+	}
+
+	/* No estado recolhido, esconda a marca para dar espaço ao toggle */
+	body:not(.sidebar-expanded) .sidebar .brand {
+		display: none;
+	}
+	body:not(.sidebar-expanded) .sidebar .header-actions .header-theme-toggle {
+		display: none;
+	}
+
+	.sidebar-nav {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.sidebar-link {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: 10px 12px;
+		border-radius: var(--border-radius-medium);
+		color: var(--color-text-secondary);
+		transition: background-color var(--transition-short), color var(--transition-short);
+	}
+
+	.sidebar-link:hover {
+		background-color: color-mix(in oklab, var(--color-border) 40%, var(--color-surface-card));
+		color: var(--color-text-primary);
+	}
+
+	.sidebar .icon { flex: 0 0 auto; }
+	.sidebar .link-text {
+		opacity: 0;
+		white-space: nowrap;
+		max-width: 0;
+		overflow: hidden;
+		transition: opacity var(--transition-short), max-width var(--transition-short);
+	}
+	body.sidebar-expanded .sidebar .link-text {
+		opacity: 1;
+		max-width: 320px;
+	}
+
+	.sidebar-footer {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-top: auto; /* fixa o footer na base da coluna */
+		padding: 0; /* sem padding extra para alinhar com nav */
+	}
+
+	/* Estado expandido: perfil + logout em uma única linha */
+	body.sidebar-expanded .sidebar .sidebar-footer { flex-direction: row; }
+	/* Estado recolhido: apenas o perfil (logout escondido) */
+	body:not(.sidebar-expanded) .sidebar .sidebar-footer { flex-direction: column; }
+
+	/* Perfil ocupa o espaço restante para que perfil+logout caibam na largura do link padrão */
+	.sidebar-footer .sidebar-link { flex: 1 1 auto; width: auto; }
+
+	/* Botão de logout ícone (tamanho uniforme) */
+	.sidebar-footer .sidebar-logout-btn { width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+
+	/* No estado recolhido, esconder completamente itens extras do footer */
+	body:not(.sidebar-expanded) .sidebar .sidebar-footer .collapse-hidden {
+		display: none !important;
+	}
+
+	.sidebar-icon-btn {
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		justify-content: center;
+		gap: 0;
+	}
+
+	/* Links de ícone no footer (âncoras) — não fixar largura para permitir texto ao expandir */
+	.sidebar-icon-link {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* Ícone do chevron com animação de rotação */
+	.sidebar-chev { transition: transform var(--transition-short); }
+	body.sidebar-expanded .sidebar-chev { transform: rotate(180deg); }
+
+	/* Alternância de ícones de tema (moon/sun) conforme data-theme-mode */
+	.theme-icon-sun { display: none; }
+	[data-theme-mode="dark"] .theme-icon-sun { display: inline-block; }
+	[data-theme-mode="dark"] .theme-icon-moon { display: none; }
+
+	/* Menu do usuário (dropdown) */
+	/* (Removido o dropdown; estilos mantidos intencionalmente vazios para compatibilidade futura) */
+}
+
+/* Fallback para mobile/tablet: esconder a sidebar, manter layout padrão */
+@media (max-width: 1023.98px) {
+	.sidebar { display: none; }
+}
+
+/* Active link indication */
+.sidebar-nav a.active {
+	background-color: var(--color-primary-light);
+	color: var(--color-primary-dark);
+	border: 1px solid color-mix(in oklab, var(--color-primary-main) 50%, var(--color-border));
+}

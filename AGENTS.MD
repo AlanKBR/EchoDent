@@ -90,3 +90,44 @@ Este projeto segue uma arquitetura específica. Suas ações de codificação de
 * PDFs: Import lazy e falha elegante se WeasyPrint ausente? Assets locais?
 * Mídia: validação de tipos/tamanho e nomes sanitizados? Caminhos relativos?
 * DB: PRAGMA WAL por bind ativo? Sem FKs cross-bind? Migrações cientes de multi-bind?
+
+## 15. Atalhos de Desenvolvimento (Login Rápido) — DEV ONLY
+
+Para acelerar debugging local, existe uma rota de login rápido que cria/usa usuários sintéticos e autentica direto. Estes recursos são estritamente de desenvolvimento.
+
+### 15.1 Rota de Login Rápido
+
+- Endpoints:
+	- `GET /__dev/login_as/admin`
+	- `GET /__dev/login_as/dentista`
+	- `GET /__dev/login_as/secretaria`
+- Parâmetros opcionais:
+	- `?next=/alguma/rota` para redirecionar após o login (default: dashboard).
+- Guarda de segurança:
+	- Só funciona quando `app.debug == True` ou `TESTING == True`. Em produção responde `404`.
+- Usuários criados automaticamente (determinísticos):
+	- `dev_admin`, `dev_dentista`, `dev_secretaria` com `senha: devpass`.
+	- São usuários sintéticos para uso local — não representam pessoas reais.
+- Observações:
+	- Não depende do fluxo normal de autenticação; é um helper para testes manuais.
+	- Não use com dados reais. Em produção, a rota não é acessível.
+
+Exemplos de uso (navegador):
+
+- `http://localhost:5000/__dev/login_as/admin?next=/dashboard`
+- `http://localhost:5000/__dev/login_as/dentista?next=/dashboard`
+- `http://localhost:5000/__dev/login_as/secretaria?next=/dashboard`
+
+### 15.2 Purga de Usuários de Desenvolvimento
+
+Para limpar os usuários sintéticos criados pelo login rápido, use o script seguro `scripts/purge_dev_users.py`.
+
+- Segurança do script:
+	- Só executa sem `--force` quando `app.debug == True` ou `TESTING == True`.
+	- Apenas remove usernames na allowlist: `dev_admin`, `dev_dentista`, `dev_secretaria`.
+- Uso no Windows PowerShell:
+	- `$env:FLASK_DEBUG=1; python scripts/purge_dev_users.py`
+	- `python scripts/purge_dev_users.py --force`
+- Boas práticas:
+	- Use apenas em bancos/dev containers locais. Não execute contra dados reais.
+	- Este script existe para manter o ambiente de desenvolvimento limpo e não se aplica a offboarding real (ver Seção 5: soft-delete para usuários reais).

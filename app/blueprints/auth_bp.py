@@ -7,6 +7,8 @@ from flask import (
     redirect,
     url_for,
     flash,
+    current_app,
+    abort,
 )
 from flask_login import (
     login_user,
@@ -14,7 +16,8 @@ from flask_login import (
     login_required,
 )
 
-from app.services.user_service import authenticate_user
+from app.services.user_service import authenticate_user, get_or_create_dev_user
+from app.models import RoleEnum
 
 
 auth_bp = Blueprint("auth_bp", __name__)
@@ -46,3 +49,33 @@ def login():  # pragma: no cover - thin controller
 def logout():  # pragma: no cover - thin controller
     logout_user()
     return redirect(url_for("auth_bp.login"))
+
+
+@auth_bp.route("/__dev/login_as/<role>", methods=["GET"])  # dev-only
+def dev_login_as(role: str):  # pragma: no cover - dev helper
+    """Login as a specific role for local debugging.
+
+    Enabled only when app.debug or TESTING is set. Use:
+      GET /__dev/login_as/admin
+      GET /__dev/login_as/dentista
+      GET /__dev/login_as/secretaria
+
+    Optionally pass ?next=/dashboard to control redirect.
+    """
+    if not (current_app.debug or current_app.config.get("TESTING")):
+        abort(404)
+
+    role_map = {
+        "admin": RoleEnum.ADMIN,
+        "dentista": RoleEnum.DENTISTA,
+        "secretaria": RoleEnum.SECRETARIA,
+    }
+    key = (role or "").strip().lower()
+    enum = role_map.get(key)
+    if not enum:
+        abort(400)
+
+    user = get_or_create_dev_user(enum)
+    login_user(user)
+    next_url = request.args.get("next") or url_for("core_bp.dashboard")
+    return redirect(next_url)

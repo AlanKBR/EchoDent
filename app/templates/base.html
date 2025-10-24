@@ -9,22 +9,23 @@
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
 <body>
-  <header class="main-header">
-    <div class="layout-container inner">
-      <div class="brand">EchoDent</div>
-      <nav>
-        <button type="button" class="btn btn-secondary" data-theme-toggle>Mudar Tema</button>
-        {% if current_user.is_authenticated %}
-          <span class="ml-4">Olá, {{ current_user.nome_completo or current_user.username }}</span>
-          <a class="btn btn-secondary ml-2" href="{{ url_for('auth_bp.logout') }}">Sair</a>
-        {% else %}
-          <a class="btn btn-secondary" href="{{ url_for('auth_bp.login') }}">Entrar</a>
-        {% endif %}
-      </nav>
-    </div>
-  </header>
+  {% if current_user.is_authenticated %}
+    {% include '_sidebar.html' %}
+  {% endif %}
 
-  <main class="layout-container">
+  <div class="main-content-wrapper">
+    <header class="main-header">
+      <div class="layout-container inner">
+        <div class="brand">EchoDent</div>
+        <nav>
+          {% if (not current_user.is_authenticated) and request.endpoint != 'auth_bp.login' %}
+            <a class="btn btn-secondary" href="{{ url_for('auth_bp.login') }}">Entrar</a>
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout-container">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="flash-messages mb-3">
@@ -38,7 +39,8 @@
     {% endwith %}
 
     {% block content %}{% endblock %}
-  </main>
+    </main>
+  </div>
   
   <!-- Modal de Erro reutilizável (inicialmente oculto) -->
   <div id="error-modal" class="modal-overlay" aria-hidden="true">
