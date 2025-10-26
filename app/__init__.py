@@ -34,6 +34,7 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
         test_default = os.environ.get("ECHO_TEST_DEFAULT_DB")
         test_users = os.environ.get("ECHO_TEST_USERS_DB")
         test_history = os.environ.get("ECHO_TEST_HISTORY_DB")
+        test_cal = os.environ.get("ECHO_TEST_CALENDARIO_DB")
         if test_default:
             app.config["SQLALCHEMY_DATABASE_URI"] = test_default
         if test_users or test_history:
@@ -42,6 +43,11 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
                 binds["users"] = test_users
             if test_history:
                 binds["history"] = test_history
+            app.config["SQLALCHEMY_BINDS"] = binds
+        # Calendário bind override (used by agenda tests)
+        if test_cal:
+            binds = dict(app.config.get("SQLALCHEMY_BINDS", {}))
+            binds["calendario"] = test_cal
             app.config["SQLALCHEMY_BINDS"] = binds
 
     # Garantir diretórios de instância e de mídia
@@ -102,6 +108,7 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
         ("app.blueprints.agendamento_bp", "agendamento_bp"),
         ("app.blueprints.paciente_bp", "paciente_bp"),
         ("app.blueprints.financeiro_bp", "financeiro_bp"),
+        ("app.blueprints.agenda_bp", "agenda_bp"),
     ]
     for module_name, attr_name in bp_specs:
         try:
@@ -122,6 +129,19 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
         from . import events  # noqa: F401
     except Exception:
         pass
+
+    # Context processor: lightweight cache busting for static assets
+    @app.context_processor
+    def inject_asset_version():  # pragma: no cover - trivial
+        try:
+            ver = os.environ.get("ASSET_VERSION")
+            if not ver:
+                ver = app.config.get("ASSET_VERSION")
+            if not ver:
+                ver = "dev"
+        except Exception:
+            ver = "dev"
+        return {"asset_v": ver}
 
     return app
 

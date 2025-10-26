@@ -1,0 +1,45 @@
+{
+  "name": "Agenda Events CRUD",
+  "description": "Create an event via select popover, edit details, recolor, and delete via context menu.",
+  "steps": [
+    { "type": "setViewport", "width": 1400, "height": 900 },
+    { "type": "navigate", "url": "${baseUrl}/agenda" },
+    { "type": "waitForText", "text": "Configurações" },
+
+    { "type": "delay", "ms": 500 },
+    { "type": "clickByText", "text": "Semana" },
+    { "type": "delay", "ms": 300 },
+
+    { "type": "clickByText", "text": "Hoje" },
+    { "type": "delay", "ms": 400 },
+
+    { "type": "delay", "ms": 300 },
+    { "type": "clickByText", "text": "12:00" },
+    { "type": "delay", "ms": 200 },
+
+    { "type": "fillByLabel", "label": "Título", "value": "E2E Consulta" },
+    { "type": "fillByLabel", "label": "Descrição", "value": "Paciente E2E" },
+    { "type": "delay", "ms": 200 },
+    { "type": "clickByText", "text": "Salvar" },
+    { "type": "waitForText", "text": "E2E Consulta" },
+
+    { "type": "delay", "ms": 300 },
+    { "type": "clickByText", "text": "E2E Consulta" },
+    { "type": "waitForText", "text": "Descrição" },
+    { "type": "fillByLabel", "label": "Descrição", "value": "Paciente E2E atualizado" },
+    { "type": "clickByText", "text": "Salvar descrição" },
+
+    { "type": "delay", "ms": 300 },
+    { "type": "clickByText", "text": "E2E Consulta" },
+    { "type": "delay", "ms": 200 },
+    { "type": "clickByText", "text": "Cor" },
+    { "type": "delay", "ms": 200 },
+    { "type": "clickByText", "text": "Laranja" },
+
+    { "type": "delay", "ms": 300 },
+    { "type": "clickByText", "text": "E2E Consulta" },
+    { "type": "delay", "ms": 200 },
+    { "type": "clickByText", "text": "Excluir" },
+    { "type": "delay", "ms": 300 }
+  ]
+}

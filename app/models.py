@@ -63,6 +63,8 @@ class Usuario(db.Model):
     # Dados de perfil profissional do prescritor
     nome_completo = db.Column(db.String(200), nullable=True)
     cro_registro = db.Column(db.String(100), nullable=True)
+    # Cor preferida do profissional (exibição na Agenda) — formato #RRGGBB
+    color = db.Column(db.String(20), nullable=True)
 
     # Soft-delete: manter usuários por questões legais e auditoria
     is_active = db.Column(
@@ -362,3 +364,102 @@ class Agendamento(db.Model):
             f"<Agendamento id={self.id} paciente_id={self.paciente_id} "
             f"{self.start_time} - {self.end_time} status={self.status}>"
         )
+
+
+# ----------------------------------
+# Agenda/Calendário (bind dedicado)
+# ----------------------------------
+
+
+class CalendarEvent(db.Model):
+    """Evento de calendário independente do fluxo de agendamentos.
+
+    Observações importantes:
+    - Usa bind dedicado (calendario) para permitir evolução isolada.
+    - Não define ForeignKeys cruzando binds (ver diretriz Multi-Bind).
+    - Campos de data/hora usam timezone=True e devem armazenar UTC.
+    """
+
+    __bind_key__ = "calendario"
+    __tablename__ = "calendar_events"
+    __table_args__ = {"info": {"bind_key": "calendario"}}
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Título e notas livres
+    title = db.Column(
+        db.String(500),
+        nullable=False,
+        default="",
+        server_default=db.text("''"),
+    )
+    notes = db.Column(db.Text, nullable=True)
+
+    # Datas em UTC, timezone-aware
+    start = db.Column(db.DateTime(timezone=True), nullable=False)
+    end = db.Column(db.DateTime(timezone=True), nullable=True)
+    all_day = db.Column(
+        db.Boolean, nullable=False, default=False, server_default=db.text("0")
+    )
+
+    # Aparência e autoria
+    color = db.Column(db.String(20), nullable=True)  # ex.: #0d6efd
+    # Referência lógica ao usuário (outro bind): users.usuarios.id
+    dentista_id = db.Column(db.Integer, nullable=True)
+
+    # Referência opcional ao paciente (sem FK cross-bind)
+    paciente_id = db.Column(db.Integer, nullable=True)
+
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"<CalendarEvent id={self.id} title={self.title!r} "
+            f"start={self.start} end={self.end}>"
+        )
+
+
+# ----------------------------------
+# Feriados (bind calendario)
+# ----------------------------------
+
+
+class Holiday(db.Model):
+    """Feriados e pontos facultativos por ano/UF.
+
+    Observações:
+    - Opera no bind dedicado 'calendario'.
+    - Campo `date` (YYYY-MM-DD) armazenado como string e usado como PK.
+    - Campos com timezone-aware conforme diretrizes (updated_at UTC).
+    - Não utiliza FKs cross-bind.
+    """
+
+    __bind_key__ = "calendario"
+    __tablename__ = "holiday"
+    __table_args__ = {"info": {"bind_key": "calendario"}}
+
+    # YYYY-MM-DD
+    date = db.Column(db.String(20), primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    type = db.Column(db.String(50), nullable=True)
+    level = db.Column(db.String(50), nullable=True)
+    state = db.Column(db.String(10), nullable=True)  # UF opcional
+    year = db.Column(db.Integer, nullable=False)
+    source = db.Column(db.String(50), nullable=False, default="invertexto")
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Holiday {self.date} {self.name} ({self.level}/{self.type})>"

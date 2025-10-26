@@ -35,7 +35,9 @@
       </button>
     </div>
   </div>
+  {# Agenda widgets removed from global sidebar by request. No calendar/filters here. #}
 
+  <div class="sidebar-main">
   <nav class="sidebar-nav" role="navigation">
   <a href="{{ url_for('core_bp.dashboard') }}" class="sidebar-link {% if request.endpoint == 'core_bp.dashboard' %}active{% endif %}">
       <!-- icon: layout-dashboard (Tabler outline, stroke-width=1.5) -->
@@ -61,7 +63,7 @@
       <span class="link-text">Pacientes</span>
     </a>
 
-  <a href="{{ url_for('core_bp.dashboard') }}" class="sidebar-link">
+  <a href="{{ url_for('agenda_bp.agenda_page') }}" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('agenda_bp.') %}active{% endif %}">
       <!-- icon: calendar-event -->
       <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-event" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -86,6 +88,9 @@
       <span class="link-text">Financeiro</span>
     </a>
   </nav>
+  </div>
+
+  {# Removed: dentists filters/widgets in global sidebar #}
 
   <div class="sidebar-footer">
     {% if current_user.is_authenticated %}

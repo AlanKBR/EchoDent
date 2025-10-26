@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block body_class %}page-agenda{% endblock %}
+
+{% block styles %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='agenda/calendar-theme.css', v=asset_v) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='agenda/vendor/flatpickr/flatpickr.min.css') }}">
+  <!-- Theme override placeholder used by agenda JS -->
+  <link id="theme-override" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+  <div class="card agenda-card">
+    <div class="card-header">
+      <h2 class="m-0">Agenda</h2>
+    </div>
+    <div class="card-body agenda-card-body">
+      <div class="agenda-layout">
+        <!-- Sidebar: widgets empilhados (mini calendário, lista de dentistas, etc.) -->
+        <aside class="agenda-sidebar">
+          <div class="agenda-widgets">
+            <section class="agenda-widget widget-mini-calendar">
+              <div id="miniCalendarFallback" class="mini-calendar"></div>
+            </section>
+            <section class="agenda-widget widget-dentists">
+              <div class="mb-2">
+                <label for="dent_all">
+                  <input type="checkbox" id="dent_all" />
+                  Todos (sem dentista)
+                </label>
+              </div>
+              <div id="dentistsContainer"></div>
+              <div id="filterNotice" class="alert alert-warning mt-3 hidden">
+                Nenhum dentista selecionado. Ajuste os filtros para ver eventos.
+              </div>
+            </section>
+          </div>
+        </aside>
+
+        <!-- Calendário -->
+        <section class="agenda-calendar">
+          <div id="calendar"></div>
+        </section>
+      </div>
+
+      <!-- Containers para popovers/menus dinâmicos (escopados no card) -->
+      <div id="popover-container"></div>
+      <div id="contextmenu-container"></div>
+      <div id="settingsmenu-container"></div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <!-- FullCalendar core + plugins (globals) -->
+  <script src="{{ url_for('static', filename='agenda/fullcalendar/fullcalendar.global.min.js') }}"></script>
+  <!-- Flatpickr (JS + locale) -->
+  <script src="{{ url_for('static', filename='agenda/vendor/flatpickr/flatpickr.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='agenda/vendor/flatpickr/l10n/pt.min.js') }}"></script>
+  <!-- Bootstrap JS (bundle) for Toasts used by agenda -->
+  <script src="{{ url_for('static', filename='agenda/bootstrap.bundle.min.js') }}"></script>
+  <!-- App controller -->
+  <script src="{{ url_for('static', filename='agenda/app.js', v=asset_v) }}" defer></script>
+{% endblock %}

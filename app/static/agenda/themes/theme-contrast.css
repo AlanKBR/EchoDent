@@ -1,0 +1,49 @@
+/* Tema Alto Contraste (escopo Agenda) */
+.agenda-card { color-scheme: light; }
+
+.agenda-card #calendar {
+    background: #ffffff;
+    border: 3px solid #000000;
+    box-shadow: none;
+}
+
+.agenda-card .fc-button {
+    background: #000000;
+    color: #ffffff;
+    border: 3px solid #000000;
+}
+
+.agenda-card .fc-button:hover,
+.agenda-card .fc-button:focus {
+    background: #222222;
+}
+
+.agenda-card .fc-toolbar-title {
+    color: #000000;
+}
+
+.agenda-card .fc-daygrid-day.fc-day-today {
+    background: #fff1a8;
+}
+
+/* Preserve event colors; only strengthen outlines if needed */
+.agenda-card .fc-event {
+    border-width: 2px;
+}
+
+.agenda-card .fc-list-event {
+    background: #ffffff;
+    color: #000000;
+    border-left: 6px solid #000000;
+}
+
+.agenda-card .popover .popover-header,
+.agenda-card .popover .popover-body {
+    background: #ffffff;
+    color: #000000;
+}
+
+.agenda-card #settingsMenu .btn.active {
+    background: #000000;
+    color: #ffffff;
+}

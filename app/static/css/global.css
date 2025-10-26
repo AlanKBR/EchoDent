@@ -56,6 +56,15 @@
 		--color-info-bg:     #eff6ff; /* blue-50 */
 		--color-info-border: #bfdbfe; /* blue-200 */
 		--color-info-text:   #1e3a8a; /* blue-900 */
+
+		/* Z-Index Tokens (consistentes e documentados) */
+		--z-base: 0;
+		--z-sticky: 10;           /* headers fixos, etc */
+		--z-dropdown: 1000;       /* dropdowns, overlays leves, modal-overlay atual */
+		--z-flyover: 3000;        /* menus flutuantes (ex.: context/settings) */
+		--z-popover: 4000;        /* popovers de edição (ex.: criar evento) */
+		--z-overlay: 10000;       /* sobreposições críticas (ex.: detalhes do evento) */
+		--z-ultimate: 99999;      /* lib/vendor (ex.: flatpickr) */
 }
 
 /* ================================
@@ -242,10 +251,13 @@ input:focus, textarea:focus, select:focus {
 	padding: var(--space-4);
 }
 
+/* Agenda needs more horizontal room: allow full-width container on that page */
+.page-agenda .layout-container { max-width: none; }
+
 .main-header {
 	position: sticky;
 	top: 0;
-	z-index: 10;
+	z-index: var(--z-sticky);
 	background-color: var(--color-surface-card);
 	border-bottom: 1px solid var(--color-border);
 	box-shadow: var(--shadow-medium);
@@ -325,7 +337,7 @@ thead th {
 .modal-overlay {
 	position: fixed;
 	inset: 0;
-	z-index: 1000;
+	z-index: var(--z-dropdown);
 	background: color-mix(in oklab, #000 55%, transparent);
 	display: none; /* ativar com .is-visible */
 	align-items: center;
@@ -373,8 +385,41 @@ thead th {
 .flex { display: flex; }
 .flex-wrap { flex-wrap: wrap; }
 .gap-2 { gap: var(--space-2); }
+.flex-1 { flex: 1 1 auto; }
 .max-w-480 { max-width: 480px; }
 .w-100 { width: 100%; }
+
+/* Generic visibility helper used across components */
+.hidden { display: none !important; }
+
+/* Respeito a acessibilidade: menos movimento quando preferido pelo usuário */
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* ================================
+	 Reusable card layout patterns
+	 ================================ */
+/* Split card with an aside and main content. Control aside width via --card-sidebar. */
+.card-split {
+	display: grid;
+	grid-template-columns: var(--card-sidebar, 280px) 1fr;
+	gap: var(--space-4);
+}
+.card-split .card-aside {
+	min-width: 220px;
+	max-width: 360px;
+}
+.card-split .card-main { min-width: 0; }
+@media (max-width: 1024px) {
+	.card-split { grid-template-columns: 1fr; }
+	.card-split .card-aside { min-width: 0; max-width: none; }
+}
 
 /* Utilitários mínimos úteis */
 .pre-wrap { white-space: pre-wrap; }
@@ -505,6 +550,39 @@ thead th {
 		margin-top: auto; /* fixa o footer na base da coluna */
 		padding: 0; /* sem padding extra para alinhar com nav */
 	}
+
+	/* Área principal entre header e footer para comportar nav e widgets dinâmicos */
+	.sidebar .sidebar-main {
+		flex: 1 1 auto;
+		min-height: 0; /* permite overflow interno */
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+	.sidebar .sidebar-main .sidebar-nav { flex: 1 1 auto; overflow: auto; }
+
+	/* Slots de widgets da Agenda na sidebar (visíveis apenas no expandido) */
+	.sidebar .sidebar-widget-slot {
+		display: none;
+		margin: var(--space-3) var(--space-2);
+		padding: var(--space-2);
+		border: 1px solid var(--color-border);
+		border-radius: var(--border-radius-medium);
+		background: var(--color-surface-card);
+		box-shadow: var(--shadow-medium);
+	}
+	body.sidebar-expanded .sidebar .sidebar-widget-slot { display: block; }
+
+	/* Sticky positioning for better widget placement */
+	.sidebar #agendaSidebarTop { position: sticky; top: var(--space-2); z-index: 2; }
+	.sidebar #agendaSidebarBottom { position: sticky; bottom: var(--space-2); z-index: 2; }
+
+	/* Mini calendar tweaks inside the sidebar */
+	.sidebar #miniCalendar { width: 100%; }
+	.sidebar #miniCalendar .fc .fc-toolbar { margin-bottom: var(--space-2); }
+	.sidebar #miniCalendar .fc .fc-toolbar-title { font-size: 0.9rem; font-weight: 600; }
+	.sidebar #miniCalendar .fc .fc-button { height: 28px; padding: 0 8px; font-size: 0.8rem; }
+/* Removed calendar widgets from global sidebar; revert extra sizing rules */
 
 	/* Estado expandido: perfil + logout em uma única linha */
 	body.sidebar-expanded .sidebar .sidebar-footer { flex-direction: row; }

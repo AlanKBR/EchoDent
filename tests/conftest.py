@@ -18,11 +18,13 @@ def app() -> Generator:
     default_uri = _temp_db_uri()
     users_uri = _temp_db_uri()
     history_uri = _temp_db_uri()
+    cal_uri = _temp_db_uri()
 
     # Provide URIs to the app factory via environment variables
     os.environ["ECHO_TEST_DEFAULT_DB"] = default_uri
     os.environ["ECHO_TEST_USERS_DB"] = users_uri
     os.environ["ECHO_TEST_HISTORY_DB"] = history_uri
+    os.environ["ECHO_TEST_CALENDARIO_DB"] = cal_uri
 
     _app = create_app("testing")
 
@@ -65,6 +67,21 @@ def app() -> Generator:
                 table = getattr(LogAuditoria, "__table__", None)
                 if table is not None:
                     table.create(bind=engine, checkfirst=True)
+        except Exception:
+            pass
+
+        # Ensure calendario bind tables exist (CalendarEvent, Holiday)
+        try:
+            from app.models import CalendarEvent, Holiday  # type: ignore
+
+            cal_engine = getattr(db, "engines", {}).get("calendario")
+            if cal_engine is not None:
+                ce_table = getattr(CalendarEvent, "__table__", None)
+                if ce_table is not None:
+                    ce_table.create(bind=cal_engine, checkfirst=True)
+                h_table = getattr(Holiday, "__table__", None)
+                if h_table is not None:
+                    h_table.create(bind=cal_engine, checkfirst=True)
         except Exception:
             pass
 
@@ -117,11 +134,12 @@ def app() -> Generator:
         "ECHO_TEST_DEFAULT_DB",
         "ECHO_TEST_USERS_DB",
         "ECHO_TEST_HISTORY_DB",
+        "ECHO_TEST_CALENDARIO_DB",
     ):
         os.environ.pop(key, None)
 
     # Remove temp files
-    for uri in (default_uri, users_uri, history_uri):
+    for uri in (default_uri, users_uri, history_uri, cal_uri):
         path = uri.replace("sqlite:///", "").replace("/", os.sep)
         try:
             os.remove(path)

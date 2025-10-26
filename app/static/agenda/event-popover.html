@@ -1,0 +1,37 @@
+<!-- Popover para adicionar evento, posicionado dinamicamente -->
+<div id="eventPopover" class="ed-popover hidden" tabindex="-1">
+    <div class="ed-popover-header">
+        <div class="ed-popover-title">Novo Evento</div>
+        <button type="button" class="btn btn-secondary btn-sm" aria-label="Fechar" id="closePopoverBtn">Fechar</button>
+    </div>
+    <div class="ed-popover-body">
+        <form id="eventPopoverForm">
+            <div class="mb-2">
+                <label for="popoverEventTitle" class="form-label">Título</label>
+                <input type="text" class="form-control" id="popoverEventTitle" required autocomplete="off" list="namesList">
+                <datalist id="namesList"></datalist>
+            </div>
+            <div class="mb-2">
+                <label for="popoverEventStart" class="form-label">Início</label>
+                <input type="text" inputmode="none" autocomplete="off" placeholder="dd/mm/aaaa hh:mm" class="form-control hidden" id="popoverEventStart">
+                <input type="text" inputmode="none" autocomplete="off" placeholder="dd/mm/aaaa" class="form-control hidden" id="popoverEventStartDate">
+            </div>
+            <div class="mb-2">
+                <label for="popoverEventEnd" class="form-label">Fim</label>
+                <input type="text" inputmode="none" autocomplete="off" placeholder="dd/mm/aaaa hh:mm" class="form-control hidden" id="popoverEventEnd">
+                <input type="text" inputmode="none" autocomplete="off" placeholder="dd/mm/aaaa" class="form-control hidden" id="popoverEventEndDate">
+            </div>
+            <div class="mb-2">
+                <label for="popoverDentist" class="form-label">Dentista</label>
+                <select id="popoverDentist" class="form-select form-select-sm">
+                    <option value="">Sem dentista</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <label for="popoverEventDesc" class="form-label">Descrição</label>
+                <textarea class="form-control" id="popoverEventDesc" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Adicionar</button>
+        </form>
+    </div>
+</div>

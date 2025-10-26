@@ -1,0 +1,19 @@
+{
+  "name": "Agenda Smoke",
+  "description": "Verify Agenda page loads and core widgets appear.",
+  "steps": [
+    { "type": "setViewport", "width": 1400, "height": 900 },
+    { "type": "navigate", "url": "${baseUrl}/agenda" },
+    { "type": "waitForText", "text": "Configurações" },
+    { "type": "assertVisible", "text": "Buscar" },
+    { "type": "assertVisible", "text": "Hoje" },
+    { "type": "assertVisible", "text": "Semana" },
+    { "type": "assertVisible", "text": "Mês" },
+    { "type": "assertVisible", "text": "Ano" },
+    { "type": "assertVisible", "text": "Lista" },
+    { "type": "assertVisible", "text": "Todos (sem dentista)" },
+    { "type": "assertVisible", "text": "Dentistas" },
+    { "type": "assertVisible", "text": "miniCalendarFallback" },
+    { "type": "assertNoBodyScroll" }
+  ]
+}

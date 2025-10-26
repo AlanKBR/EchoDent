@@ -1,0 +1,620 @@
+/* EchoDent Agenda — Scoped theme inside .agenda-card */
+.agenda-card {
+  position: relative; /* scope positioned children/popovers */
+}
+
+/* EchoDent minimal popover components */
+.agenda-card .ed-popover {
+  position: absolute;
+  display: none;
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  box-shadow: var(--shadow-medium);
+  max-width: min(92vw, 420px);
+  min-width: 240px;
+  padding: 0;
+  z-index: var(--z-popover);
+}
+.agenda-card .ed-popover.is-open { display: block; }
+.agenda-card .ed-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+}
+.agenda-card .ed-popover-body { padding: var(--space-4); }
+.agenda-card .ed-menu { min-width: 220px; }
+.agenda-card #searchMenu { min-width: 320px; }
+
+/* Responsive layout for Agenda page */
+/* Make the agenda page fill the viewport and allow inner scroll instead of page scroll */
+/* Prevent body-level scroll on Agenda; contain scrolling within the card/calendar */
+body.page-agenda {
+  overflow: hidden;
+}
+
+body.page-agenda .main-content-wrapper {
+  max-height: 100vh; /* cap to viewport */
+  overflow: hidden;  /* avoid adding a few extra px due to margins/gutters */
+}
+
+body.page-agenda .main-content-wrapper > main.layout-container {
+  flex: 1 1 auto;
+  min-height: 0; /* allow children to manage overflow */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* contain internal scroll areas */
+}
+
+.agenda-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto; /* occupy remaining space below header/flash messages */
+  min-height: 0;
+}
+
+.agenda-card .agenda-card-body {
+  padding: var(--space-4);
+  flex: 1 1 auto;
+  min-height: 0; /* enable internal containers to scroll rather than the page */
+  display: flex;
+  flex-direction: column;
+}
+
+.agenda-card .agenda-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--space-4);
+  /* occupy available height within the card body */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.agenda-card .agenda-sidebar {
+  min-width: 260px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.agenda-card .agenda-calendar {
+  min-width: 0; /* allow grid child to shrink */
+  min-height: 0; /* allow internal scroll instead of growing page */
+  display: flex;
+  flex-direction: column;
+  /* Enable container queries for smarter small-width rules */
+  container-type: inline-size;
+}
+
+.agenda-card #calendar {
+  width: 100%;
+  /* Let it flex to fill the available space without forcing page scroll */
+  height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+@media (max-width: 1024px) {
+  .agenda-card .agenda-layout {
+    grid-template-columns: 1fr;
+  }
+  .agenda-card .agenda-sidebar {
+    min-width: 0;
+    max-width: none;
+    order: 2; /* sidebar below calendar on small screens for priority */
+  }
+  /* On small screens, let calendar still fill available space within card */
+  .agenda-card #calendar { min-height: 0; }
+}
+
+/* On narrower screens, hide the mini calendar widget to avoid cramped layout and resize thrash */
+@media (max-width: 900px) {
+  .agenda-card .widget-mini-calendar { display: none !important; }
+}
+
+/* If JS determines the widget is too narrow, auto-hide it */
+.agenda-card .widget-mini-calendar.auto-hidden { display: none !important; }
+
+/* Global sidebar no longer hosts agenda widgets; keep in-card sidebar always visible */
+/* (Previously: when .sidebar-expanded, in-card sidebar was hidden and grid collapsed) */
+
+.agenda-card .fc-toolbar-title {
+  font-size: 1.5rem;
+}
+
+/* Make FullCalendar header buttons feel like EchoDent buttons */
+.agenda-card .fc .fc-button {
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  padding: 0 10px;
+  height: 32px; /* compact toolbar buttons */
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-medium);
+}
+.agenda-card .fc .fc-toolbar { flex-wrap: wrap; gap: 6px 8px; }
+.agenda-card .fc .fc-toolbar-chunk { display: flex; align-items: center; gap: 8px; }
+.agenda-card .fc .fc-button:hover {
+  border-color: var(--color-primary-main);
+}
+.agenda-card .fc .fc-button-primary:not(:disabled) {
+  background: var(--color-primary-main);
+  color: var(--color-text-on-primary);
+  border-color: transparent;
+}
+.agenda-card .fc .fc-button-primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.agenda-card .fc-daygrid-day.fc-day-today {
+  /* Subtle highlight using warning token on top of surface */
+  background: var(--color-warning-bg);
+}
+
+.agenda-card .fc-event {
+  border-radius: .25rem;
+  padding: 1px 4px;
+}
+
+.agenda-card .fc-list-event {
+  border-left-width: .25rem;
+}
+
+.agenda-card .fc-scrollgrid {
+  border-radius: .25rem;
+  overflow: hidden;
+}
+
+/* Settings menu */
+.agenda-card #settingsMenu {
+  min-width: 220px;
+  z-index: var(--z-flyover);
+}
+
+/* Sidebar widgets */
+.agenda-card .agenda-widgets { display: flex; flex-direction: column; gap: var(--space-4); }
+.agenda-card .agenda-widget {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-medium);
+  /* performance hint for heavy widgets */
+  content-visibility: auto;
+  contain-intrinsic-size: 320px 240px; /* fallback size before render */
+}
+.agenda-card .widget-mini-calendar .mini-calendar { width: 100%; }
+.agenda-card .widget-mini-calendar { min-width: 0; }
+.agenda-card .widget-mini-calendar .fc { width: 100%; }
+/* Prevent janky transitions inside the mini widget during layout */
+.agenda-card .widget-mini-calendar .fc,
+.agenda-card .widget-mini-calendar .fc * {
+  transition: none !important;
+  animation: none !important;
+}
+.agenda-card #miniCalendar .fc .fc-toolbar-title,
+.agenda-card #miniCalendarFallback .fc .fc-toolbar-title { font-size: 0.95rem; font-weight: 600; }
+.agenda-card #miniCalendar .fc .fc-scrollgrid,
+.agenda-card #miniCalendarFallback .fc .fc-scrollgrid { border-radius: .25rem; overflow: hidden; }
+
+/* Mini: keep scrollgrid intact; width fix handled in JS to avoid table layout issues */
+.agenda-card #dentistsContainer { max-height: 40vh; overflow: auto; }
+
+/* Mini calendar containers: enforce aspect ratio for square-ish day cells */
+.agenda-card #miniCalendar,
+.agenda-card #miniCalendarFallback {
+  width: 100%;
+  /* JS computes exact height to keep squares; don't enforce ratio via CSS */
+  aspect-ratio: auto;
+}
+/* Ensure the inner FC harness fills the container height */
+.agenda-card #miniCalendar .fc,
+.agenda-card #miniCalendarFallback .fc {
+  height: 100%;
+}
+.agenda-card #miniCalendar .fc .fc-view-harness,
+.agenda-card #miniCalendarFallback .fc .fc-view-harness {
+  /* Height set by JS for perfect squares; avoid 100% here to prevent stretch */
+  height: auto;
+}
+/* Help stabilize column widths for the mini daygrid */
+.agenda-card #miniCalendar .fc .fc-daygrid-body table,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-body table {
+  table-layout: fixed;
+  width: 100%;
+}
+/* Mini housekeeping: compact paddings, hide event rows to avoid height influence */
+.agenda-card #miniCalendar .fc .fc-toolbar,
+.agenda-card #miniCalendarFallback .fc .fc-toolbar {
+  margin-bottom: var(--space-1, 4px);
+}
+.agenda-card #miniCalendar .fc .fc-button,
+.agenda-card #miniCalendarFallback .fc .fc-button {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+}
+.agenda-card #miniCalendar .fc .fc-col-header-cell-cushion,
+.agenda-card #miniCalendarFallback .fc .fc-col-header-cell-cushion {
+  padding: 4px 0;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.agenda-card #miniCalendar .fc .fc-daygrid-day-events,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-day-events {
+  display: none;
+}
+
+/* Mini: prevent internal scrollbars and keep layout tight */
+.agenda-card #miniCalendar .fc .fc-scroller,
+.agenda-card #miniCalendarFallback .fc .fc-scroller {
+  overflow: hidden !important;
+  /* avoid reserving gutter space that shows as a useless left bar */
+  scrollbar-gutter: auto !important;
+}
+.agenda-card #miniCalendar .fc thead .fc-scroller,
+.agenda-card #miniCalendarFallback .fc thead .fc-scroller {
+  /* Explicitly override header scroller that can force a vertical scrollbar */
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+}
+.agenda-card #miniCalendar .fc .fc-scroller-harness,
+.agenda-card #miniCalendarFallback .fc .fc-scroller-harness,
+.agenda-card #miniCalendar .fc .fc-scroller-harness-liquid,
+.agenda-card #miniCalendarFallback .fc .fc-scroller-harness-liquid {
+  height: auto !important;
+  overflow: visible !important;
+}
+.agenda-card #miniCalendar .fc .fc-scrollgrid-sync-inner,
+.agenda-card #miniCalendarFallback .fc .fc-scrollgrid-sync-inner {
+  overflow: hidden !important;
+}
+
+/* Mini: remove FullCalendar's shrink/gutter column that can appear at the left */
+.agenda-card #miniCalendar .fc .fc-scrollgrid-shrink,
+.agenda-card #miniCalendarFallback .fc .fc-scrollgrid-shrink {
+  display: none !important;
+  width: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+/* Ensure the mini widget isn't constrained by intrinsic-size fallback */
+.agenda-card .widget-mini-calendar {
+  content-visibility: visible !important;
+  contain-intrinsic-size: auto !important;
+}
+
+/* Mini: unlock table row heights so frames can define square sizing */
+.agenda-card #miniCalendar .fc .fc-daygrid-body tr,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-body tr {
+  height: auto;
+}
+
+/* Mini: enforce square day cells by using a ratio hack on each frame */
+.agenda-card #miniCalendar .fc .fc-daygrid-day-frame,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-day-frame {
+  height: auto;
+  min-height: 0;
+}
+/* Prefer pure CSS squares when supported */
+.agenda-card #miniCalendar .fc .fc-daygrid-day,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-day { padding: 0; }
+.agenda-card #miniCalendar .fc .fc-daygrid-day-frame,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-day-frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+/* Remove ratio pseudo for mini; JS sets exact heights */
+.agenda-card #miniCalendar .fc .fc-daygrid-day-frame::before,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-day-frame::before {
+  content: none !important;
+}
+
+/* Mini: center the day number within each cell */
+.agenda-card #miniCalendar .fc .fc-daygrid-day-top,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-day-top {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100%;
+}
+.agenda-card #miniCalendar .fc .fc-daygrid-day-number,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-day-number {
+  margin: 0;
+}
+
+/* Mini: indicators as absolute overlays so they don't change cell height */
+.agenda-card #miniCalendar .fc .fc-daygrid-day-frame,
+.agenda-card #miniCalendarFallback .fc .fc-daygrid-day-frame {
+  position: relative;
+}
+.agenda-card #miniCalendar .mini-indicators,
+.agenda-card #miniCalendarFallback .mini-indicators {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  display: grid;
+  grid-auto-flow: column;
+  gap: 2px;
+  height: 4px;
+  pointer-events: none;
+}
+.agenda-card #miniCalendar .mini-indicators .bar,
+.agenda-card #miniCalendarFallback .mini-indicators .bar {
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* Mini: optionally hide the toolbar entirely to maximize grid area and avoid overflow */
+/* Mini toolbar: visible, compact and centered; title sits to the right of prev/next in same chunk */
+.agenda-card #miniCalendar .fc .fc-toolbar,
+.agenda-card #miniCalendarFallback .fc .fc-toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-1, 4px);
+}
+.agenda-card #miniCalendar .fc .fc-toolbar-chunk,
+.agenda-card #miniCalendarFallback .fc .fc-toolbar-chunk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.agenda-card #miniCalendar .fc .fc-toolbar-title,
+.agenda-card #miniCalendarFallback .fc .fc-toolbar-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.agenda-card #settingsMenu .btn.active {
+  /* Prefer primary token family for active state */
+  border-color: var(--color-primary-main);
+  background: color-mix(in oklab, var(--color-primary-main) 15%, var(--color-surface-card));
+  color: var(--color-text-primary);
+}
+
+/* --- Small-width hardening via container queries --- */
+@container (max-width: 680px) {
+  .agenda-card .fc .fc-toolbar-title { font-size: 1.1rem; }
+  .agenda-card .fc .fc-button { height: 28px; font-size: 0.8rem; padding: 0 6px; }
+  .agenda-card .fc .fc-toolbar { gap: 4px 6px; }
+}
+@container (max-width: 520px) {
+  /* Avoid layout blow-ups: ensure harness and scrollers can shrink without forcing overflow */
+  .agenda-card .fc .fc-view-harness { min-width: 0; }
+  .agenda-card .fc { min-width: 0; overflow-x: hidden; }
+  .agenda-card .agenda-sidebar { min-width: 0; }
+}
+
+/* Color circle for context menu */
+.agenda-card .color-circle {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-surface-card);
+  box-shadow: 0 1px 4px #0002;
+  cursor: pointer;
+  transition: outline 0.2s, box-shadow 0.2s;
+  background: #2563eb;
+  /* default */
+}
+
+.color-circle:hover,
+.color-circle.selected {
+  outline: 2px solid var(--color-primary-main);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-primary-main) 20%, transparent);
+}
+
+/* Map data-color values to backgrounds (no inline styles) */
+.agenda-card .color-circle[data-color="#e11d48"] {
+  background: #e11d48;
+}
+
+.agenda-card .color-circle[data-color="#f43f5e"] {
+  background: #f43f5e;
+}
+
+.agenda-card .color-circle[data-color="#f59e42"] {
+  background: #f59e42;
+}
+
+.agenda-card .color-circle[data-color="#fbbf24"] {
+  background: #fbbf24;
+}
+
+.agenda-card .color-circle[data-color="#22c55e"] {
+  background: #22c55e;
+}
+
+.agenda-card .color-circle[data-color="#10b981"] {
+  background: #10b981;
+}
+
+.agenda-card .color-circle[data-color="#0ea5e9"] {
+  background: #0ea5e9;
+}
+
+.agenda-card .color-circle[data-color="#2563eb"] {
+  background: #2563eb;
+}
+
+.agenda-card .color-circle[data-color="#6366f1"] {
+  background: #6366f1;
+}
+
+.agenda-card .color-circle[data-color="#a21caf"] {
+  background: #a21caf;
+}
+
+.agenda-card .color-circle[data-color="#f472b6"] {
+  background: #f472b6;
+}
+
+.agenda-card .color-circle[data-color="#64748b"] {
+  background: #64748b;
+}
+
+/* Context menu container */
+.agenda-card #eventContextMenu.popover {
+  display: none;
+  position: absolute;
+  min-width: 180px;
+  z-index: var(--z-flyover);
+}
+
+/* Fix para datalist dentro de popover com position absolute */
+/* Legacy safety: if any .popover remains, keep it contido ao card */
+.agenda-card .popover { position: absolute !important; z-index: var(--z-dropdown); }
+
+.agenda-card .popover input[list] {
+  position: relative;
+  z-index: 1;
+}
+
+/* Expand FullCalendar's "+ N more" popover for year/month views */
+.agenda-card .fc-more-popover {
+  width: 420px !important;
+  max-width: 90vw;
+}
+
+.agenda-card .fc-more-popover .fc-popover-body {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+/* Ensure event detail popover is above day/year popover */
+.agenda-card #eventDetailPopover {
+  z-index: var(--z-overlay) !important;
+}
+
+/* Rich lines inside the popover */
+.agenda-card .fc-popover-rich .line1 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agenda-card .fc-popover-rich .fc-event-title {
+  font-weight: 700;
+}
+
+.agenda-card .fc-popover-rich .fc-event-time-start {
+  font-weight: 400;
+}
+
+.agenda-card .fc-popover-rich .fc-event-notes {
+  margin-top: 2px;
+  white-space: normal;
+}
+
+/* Estilos para o popup de detalhes */
+/* 'hidden' moved to global.css to avoid scope collisions */
+
+.agenda-card .event-color-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-surface-card);
+}
+
+/* Clique para copiar (telefone) */
+.agenda-card .click-to-copy {
+  cursor: pointer;
+}
+
+.agenda-card .click-to-copy.copied::after {
+  content: ' Copiado!';
+  color: var(--color-primary-dark);
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+/* Ensure event text fits within short slots (e.g., 30-min) */
+.agenda-card .fc-timegrid-event .fc-event-main,
+.agenda-card .fc-timegrid-event .fc-event-main-frame {
+  overflow: hidden;
+}
+
+/* Ensure events use the full column width (avoid right-side dead space) */
+.agenda-card .fc .fc-timegrid-col-events { margin-left: 0 !important; margin-right: 0 !important; }
+.agenda-card .fc .fc-timegrid-event { width: 100% !important; box-sizing: border-box; margin-right: 0 !important; }
+.agenda-card .fc .fc-timegrid-event .fc-event-main { width: 100%; }
+.agenda-card .fc .fc-daygrid-event { width: 100%; }
+
+.agenda-card .fc-timegrid-event .fc-event-main-custom {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9em;
+}
+
+.agenda-card .fc-timegrid-event .fc-event-main-custom.two-line {
+  white-space: normal;
+  /* permite quebra em duas linhas controladas */
+}
+
+.agenda-card .fc-timegrid-event .fc-event-main-custom.two-line .fc-event-title {
+  display: block;
+}
+
+.agenda-card .fc-timegrid-event .fc-event-main-custom.two-line .fc-event-time-start {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agenda-card .fc-timegrid-event .fc-event-title {
+  font-weight: 700;
+}
+
+.agenda-card .fc-timegrid-event .fc-event-time-start {
+  font-weight: 400;
+  /* normal */
+}
+
+/* Day view: scale font for longer events */
+.agenda-card .fc-timegrid-day .fc-timegrid-event .fc-event-main-custom.size-medium {
+  font-size: 1.05em;
+}
+
+.agenda-card .fc-timegrid-day .fc-timegrid-event .fc-event-main-custom.size-large {
+  font-size: 1.15em;
+}
+
+/* Month (dayGrid) compact one-liners: title bold, time normal */
+.agenda-card .fc-daygrid-event .fc-event-main,
+.agenda-card .fc-daygrid-event .fc-event-main-frame {
+  overflow: hidden;
+}
+
+.agenda-card .fc-daygrid-event .fc-month-line {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agenda-card .fc-daygrid-event .fc-event-title {
+  font-weight: 700;
+}
+
+.agenda-card .fc-daygrid-event .fc-event-time-start {
+  font-weight: 400;
+}

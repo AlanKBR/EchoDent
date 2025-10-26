@@ -1,0 +1,21 @@
+{
+  "name": "Agenda Search Flow",
+  "description": "Use the search menu, filter by query, and switch to a list view covering results.",
+  "steps": [
+    { "type": "setViewport", "width": 1400, "height": 900 },
+    { "type": "navigate", "url": "${baseUrl}/agenda" },
+    { "type": "waitForText", "text": "Buscar" },
+
+    { "type": "clickByText", "text": "Buscar" },
+    { "type": "waitForText", "text": "Consulta" },
+    { "type": "fillByPlaceholder", "placeholder": "Buscar por nome, notas", "value": "Foo" },
+    { "type": "delay", "ms": 200 },
+    { "type": "clickByText", "text": "Aplicar" },
+
+    { "type": "delay", "ms": 300 },
+    { "type": "clickByText", "text": "Lista" },
+    { "type": "delay", "ms": 400 },
+
+    { "type": "waitForText", "text": "Foo" }
+  ]
+}

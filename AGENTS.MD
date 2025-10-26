@@ -18,7 +18,7 @@ Este projeto segue uma arquitetura específica. Suas ações de codificação de
 * **`app/models.py`:** Um arquivo *único* para *todos* os modelos SQLAlchemy. (Evitar importação circular).
 * **`app/services/`:** Pacote para *toda* lógica de negócio (ex: `financeiro_service.py`).
 * **`app/blueprints/`:** Pacote para rotas "burras" (thin controllers) que chamam os *services* e renderizam templates.
-* **Estilização (CSS):** Usar preferencialmente um arquivo `global.css` centralizado (ex: `app/static/css/global.css`).
+* **Estilização (CSS):** Usar preferencialmente um arquivo `global.css` centralizado (ex: `app/static/css/global.css`). Para módulos complexos (ex.: Agenda), é permitido CSS escopado ao contêiner raiz da página (ex.: `.agenda-card`) para evitar vazamento global.
 * **Frontend (Boas Práticas):** É proibido CSS/JS inline nos `.html` — inclusive atributos `style="..."`. Todo CSS deve estar no `global.css` (ou arquivos .css linkados) e todo JS em arquivos `.js` separados (ex: `app/static/js/`).
 
 ## 4. Banco de Dados (Multi-Bind SQLite)
@@ -41,12 +41,22 @@ Este projeto segue uma arquitetura específica. Suas ações de codificação de
 ## 7. HTMX e Templates (Padrões)
 * **Hipermídia first:** Endpoints devem retornar HTML renderizado (parciais/fragmentos onde fizer sentido) — evitar JSON para a UI.
 * **Parciais reutilizáveis:** Componentes dinâmicos (ex.: linhas de tabelas, widgets) devem ter parciais Jinja específicas para HTMX (`_*.html`).
+* **Widgets (Slots na Sidebar e Página):** A sidebar global pode expor slots (ex.: `#agendaSidebarTop`, `#agendaSidebarBottom`) quando em páginas específicas (ex.: Agenda). Páginas que queiram preencher slots devem expor widgets autocontidos (markup + CSS escopado + inicialização JS idempotente).
+* **Motor de Widgets (HTMX - opcional):** Um mini-motor pode orquestrar regiões nomeadas (slots) e carregar widgets via endpoints parciais, com estado mínimo no cliente.
+	- Pros: reuso, lazy-load, fallback server-first, baixo JS, composição em templates.
+	- Contras: coordenação de estado entre widgets, prioridade/ordem dinâmica exigem convenções, atenção à performance (muitos requests paralelos).
 * **DOM Targets:** IDs/anchors estáveis para `hx-target` e `hx-swap`. Evitar dependência de seletores frágeis.
 * **Progressive enhancement:** A página base deve funcionar com full reload; HTMX melhora a UX, mas não deve ser obrigatório.
 * **Sem JS inline:** Qualquer JS complementar vai em `app/static/js/`. CSS somente em `app/static/css/global.css`.
 * **Design Tokens:** Toda UI deve ser construída sobre os Design Tokens (Variáveis CSS) definidos em `global.css`.
 * **Componentização de Estilos:** Usar classes de componentes (ex.: `.card`, `.btn`, `.alert`) em vez de estilizar elementos brutos.
 * **Estrutura de Páginas/Formulários:** Novos formulários/páginas devem usar a estrutura `.card` (com `.card-header` / `.card-body`) e botões `.btn-primary` / `.btn-secondary`.
+* **Boas Práticas de UI/UX (EchoDent):**
+	- Layouts responsivos com contenção por contêiner (ex.: popovers `.ed-popover` posicionados relativamente ao card/painel; evitar overlays globais).
+	- Botões e campos fundamentados em tokens; evitar dependência de bibliotecas CSS externas.
+	- Acessibilidade básica: `aria-*` consistentes, foco visível, rótulos, localizações.
+	- Listas longas usam rolagem interna e cabeçalhos sticky quando fizer sentido.
+	- CSS global só para tokens/componentes base; regras específicas por página devem ser escopadas ao seu contêiner raiz.
 
 ## 8. PDFs e WeasyPrint (Windows)
 * **Dependências nativas:** Em Windows, é necessário MSYS2 + Pango. Configure `WEASYPRINT_DLL_DIRECTORIES` apontando para `C:\msys64\mingw64\bin` quando presente.
@@ -131,3 +141,12 @@ Para limpar os usuários sintéticos criados pelo login rápido, use o script se
 - Boas práticas:
 	- Use apenas em bancos/dev containers locais. Não execute contra dados reais.
 	- Este script existe para manter o ambiente de desenvolvimento limpo e não se aplica a offboarding real (ver Seção 5: soft-delete para usuários reais).
+
+## 16. UI/UX e JavaScript — Verificação Rápida (DevTools > Pytest)
+
+- Para alterações em UI/UX e JS (ex.: CSS, FullCalendar, HTMX/front), quase nunca é necessário rodar `pytest`.
+- Prefira validação visual com DevTools/MCP: siga os trechos de verificação em `docs/MCP_E2E_CHECKS.md` (console snippets).
+- Use cache-busting ao testar estáticos: defina `ASSET_VERSION` antes de iniciar o app para garantir que o navegador recarregue JS/CSS.
+- Mantenha as regras de arquitetura: nada de CSS/JS inline; escopo de estilos por página/contêiner.
+- Só rode `pytest` quando houver mudança em lógica de backend/serviços, contratos de API, ou quando um erro de UI indicar falha no servidor.
+- Exemplos rápidos: abra `/agenda`, execute os snippets de checagem (mini quadrado, formatação HH:MM – HH:MM, scroll contido) e ajuste CSS/JS conforme necessário.

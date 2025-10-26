@@ -7,3 +7,4 @@ weasyprint
 brasilapi
 pytest
 pytest-flask
+httpx

@@ -1,0 +1,335 @@
+/* Tema Escuro (escopo Agenda) — token-first (alinhado ao global.css) */
+.agenda-card { color-scheme: dark; }
+
+/* General forms in dark mode */
+.agenda-card input[type="text"],
+.agenda-card input[type="search"],
+.agenda-card input[type="date"],
+.agenda-card input[type="time"],
+.agenda-card input[type="datetime-local"],
+.agenda-card textarea,
+.agenda-card select,
+.agenda-card .form-control,
+.agenda-card .form-select {
+    background-color: var(--color-surface-card) !important;
+    color: var(--color-text-primary) !important;
+    border: 1px solid var(--color-border) !important;
+}
+
+.agenda-card .form-control::placeholder,
+.agenda-card textarea::placeholder {
+    color: var(--color-text-secondary) !important;
+}
+
+.agenda-card .form-check-input {
+    background-color: var(--color-background) !important;
+    border-color: var(--color-border) !important;
+}
+
+.agenda-card .form-check-input:checked {
+    background-color: var(--color-primary-main) !important;
+    border-color: var(--color-primary-main) !important;
+}
+
+/* Dentist list / sidebar tweaks */
+.agenda-card #dentistsContainer {
+    background: var(--color-surface-card);
+}
+
+.agenda-card #dentistsContainer .dentist-list .dentist-item {
+    border-bottom-color: var(--color-border) !important;
+}
+
+.agenda-card #dentistsSidebar {
+    background-color: var(--color-surface-card) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-primary) !important;
+}
+
+.agenda-card #dentistsSidebar .card-header {
+    background-color: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card)) !important;
+    color: var(--color-text-primary) !important;
+}
+
+.agenda-card #dentistsSidebar .card-body {
+    background-color: var(--color-surface-card) !important;
+}
+
+.agenda-card #dentistsSidebar .form-check-label,
+.agenda-card #dentistsSidebar .small,
+.agenda-card #dentistsSidebar label {
+    color: var(--color-text-secondary);
+}
+
+.agenda-card #dentistsSidebar .text-muted {
+    color: var(--color-text-secondary) !important;
+}
+
+.agenda-card #dentistsSidebar .border-top {
+    border-top-color: var(--color-border) !important;
+}
+
+.agenda-card #dentistsSidebar .border-bottom {
+    border-bottom-color: var(--color-border) !important;
+}
+
+/* Ensure cards are dark regardless of defaults */
+.agenda-card .card {
+    background-color: var(--color-surface-card) !important;
+    color: var(--color-text-primary) !important;
+    border-color: var(--color-border) !important;
+}
+
+.agenda-card .card-header {
+    background-color: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card)) !important;
+    color: var(--color-text-primary) !important;
+    border-bottom: 1px solid var(--color-border) !important;
+}
+
+.agenda-card .card-body {
+    background-color: var(--color-surface-card) !important;
+    color: var(--color-text-primary) !important;
+}
+
+.agenda-card #dentistsContainer label,
+.agenda-card #dentistsContainer .dentist-item,
+.agenda-card #dentistsContainer .dentist-item .form-check-input {
+    color: var(--color-text-secondary);
+}
+
+.agenda-card #calendar {
+    background: var(--color-surface-card);
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-medium);
+}
+
+.agenda-card .fc,
+.agenda-card .popover {
+    background: var(--color-surface-card);
+    color: var(--color-text-primary);
+}
+
+.agenda-card .fc-theme-standard td,
+.agenda-card .fc-theme-standard th,
+.agenda-card .fc-theme-bootstrap td,
+.agenda-card .fc-theme-bootstrap th {
+    border-color: var(--color-border);
+    /* dark grid lines */
+}
+
+.agenda-card .fc-theme-standard .fc-scrollgrid,
+.agenda-card .fc-theme-standard .fc-scrollgrid table,
+.agenda-card .fc-theme-bootstrap .fc-scrollgrid,
+.agenda-card .fc-theme-bootstrap .fc-scrollgrid table {
+    border-color: var(--color-border);
+}
+
+.agenda-card .fc-col-header,
+.agenda-card .fc-col-header-cell {
+    background: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card));
+    color: var(--color-text-primary);
+}
+
+.agenda-card .fc-timegrid-axis,
+.agenda-card .fc-timegrid-axis-frame {
+    background: var(--color-background);
+    color: var(--color-text-secondary);
+    border-color: var(--color-border);
+}
+
+.agenda-card .fc-timegrid-slot {
+    border-bottom: 1px solid var(--color-border);
+    /* time slot lines */
+}
+
+.agenda-card .fc-scrollgrid-shrink {
+    background: var(--color-background);
+    /* gutter areas */
+}
+
+.agenda-card .fc-timegrid-divider {
+    border-color: var(--color-border);
+}
+
+.agenda-card .fc-now-indicator-line {
+    border-color: var(--color-danger-border);
+    /* now-indicator */
+}
+
+.agenda-card .fc-daygrid-day-number,
+.agenda-card .fc-col-header-cell-cushion,
+.agenda-card .fc-timegrid-axis-cushion {
+    color: var(--color-text-secondary);
+}
+
+.agenda-card .fc-toolbar-title {
+    color: var(--color-text-primary);
+}
+
+.agenda-card .fc a,
+.agenda-card .fc a:hover,
+.agenda-card .fc a:focus {
+    color: var(--color-primary-light);
+}
+
+.agenda-card .fc-button {
+    background: color-mix(in oklab, var(--color-border) 40%, var(--color-surface-card));
+    color: var(--color-text-primary);
+}
+
+.agenda-card .fc-button:hover,
+.agenda-card .fc-button:focus {
+    background: color-mix(in oklab, var(--color-border) 55%, var(--color-surface-card));
+}
+
+.agenda-card .fc-daygrid-day.fc-day-today {
+    background: color-mix(in oklab, var(--color-primary-main) 12%, transparent);
+}
+
+/* Mini/main holiday & empty overlays: softer in dark theme, with higher specificity to override inline */
+.agenda-card .fc .fc-holiday-bg {
+    background: color-mix(in oklab, var(--color-danger-border) 16%, transparent) !important;
+}
+
+.agenda-card .fc .fc-empty-bg {
+    background: color-mix(in oklab, var(--color-warning-border) 20%, transparent) !important;
+    opacity: 1 !important;
+}
+
+.agenda-card .fc .fc-day-other .fc-empty-bg {
+    background: color-mix(in oklab, var(--color-warning-border) 12%, transparent) !important;
+}
+
+/* More link in month view */
+.agenda-card .fc .fc-daygrid-more-link {
+    color: var(--color-primary-light);
+}
+
+/* Today column for timeGrid */
+.agenda-card .fc-timegrid-col.fc-day-today {
+    background: color-mix(in oklab, var(--color-primary-main) 10%, transparent);
+}
+
+/* Preserve event colors provided by FullCalendar/event data */
+.agenda-card .fc-list-event {
+    background: var(--color-background);
+    color: var(--color-primary-light);
+    border-left-color: var(--color-primary-light);
+}
+
+/* Não sobrepor cor dos eventos no modo escuro: respeitar a cor do evento */
+/* (Sem fallback de background escuro em eventos) */
+/* Selection highlight */
+.agenda-card .fc .fc-highlight {
+    background: color-mix(in oklab, var(--color-primary-main) 20%, transparent);
+}
+
+/* List views */
+.agenda-card .fc .fc-list,
+.agenda-card .fc .fc-list-table,
+.agenda-card .fc .fc-theme-standard .fc-list,
+.agenda-card .fc .fc-theme-standard .fc-list-table {
+    background: var(--color-surface-card);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+.agenda-card .fc .fc-list-day-cushion {
+    background: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card));
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.agenda-card .fc .fc-list-event:hover {
+    background: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card));
+}
+
+.agenda-card .fc .fc-list-event-time,
+.agenda-card .fc .fc-list-event-title {
+    color: var(--color-text-secondary);
+}
+
+/* MultiMonth */
+.agenda-card .fc .fc-multimonth-title {
+    background: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card));
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.agenda-card .fc .fc-multimonth {
+    background: var(--color-surface-card);
+}
+
+.agenda-card .fc .fc-multimonth .fc-multimonth-month {
+    background: var(--color-surface-card);
+    border-color: var(--color-border);
+}
+
+.agenda-card .fc .fc-multimonth .fc-daygrid-day-number {
+    color: var(--color-text-secondary);
+}
+
+.agenda-card .fc .fc-multimonth .fc-daygrid-day.fc-day-today {
+    background: color-mix(in oklab, var(--color-primary-main) 12%, transparent);
+}
+
+.agenda-card .fc .fc-multimonth .fc-col-header,
+.agenda-card .fc .fc-multimonth .fc-col-header-cell {
+    background: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card));
+    color: var(--color-text-primary);
+}
+
+.agenda-card .fc .fc-multimonth .fc-daygrid-day,
+.agenda-card .fc .fc-multimonth .fc-daygrid-day-frame {
+    background: var(--color-surface-card);
+}
+
+/* Holiday cell tint in dark mode: rely on overlay only to avoid doubling */
+.agenda-card .fc .fc-day-holiday,
+.agenda-card .fc .fc-multimonth .fc-day-holiday,
+.agenda-card .fc .fc-multimonth .fc-daygrid-day.fc-day-holiday,
+.agenda-card .fc .fc-daygrid-day.fc-day-holiday .fc-daygrid-day-frame {
+    background: transparent !important;
+}
+
+/* Popovers */
+.agenda-card .popover .popover-header {
+    background: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card));
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.agenda-card .popover .popover-body {
+    background: var(--color-surface-card);
+    color: var(--color-text-primary);
+}
+
+/* FullCalendar overflow popover */
+.agenda-card .fc .fc-popover {
+    background: var(--color-surface-card);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+}
+
+.agenda-card .fc .fc-popover .fc-popover-header {
+    background: color-mix(in oklab, var(--color-border) 35%, var(--color-surface-card));
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.agenda-card .fc .fc-popover .fc-popover-body {
+    background: var(--color-surface-card);
+}
+
+/* Settings active */
+.agenda-card #settingsMenu .btn.active {
+    background: color-mix(in oklab, var(--color-primary-main) 15%, var(--color-surface-card));
+    color: var(--color-text-primary);
+    border-color: var(--color-primary-main);
+}
+
+/* Settings headings (text-muted) no escuro */
+.agenda-card #settingsMenu .text-muted,
+.agenda-card .popover .text-muted {
+    color: var(--color-text-secondary) !important;
+}

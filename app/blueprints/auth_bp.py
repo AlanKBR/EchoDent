@@ -15,6 +15,8 @@ from flask_login import (
     logout_user,
     login_required,
 )
+from datetime import timedelta
+from flask import session
 
 from app.services.user_service import authenticate_user, get_or_create_dev_user
 from app.models import RoleEnum
@@ -76,6 +78,50 @@ def dev_login_as(role: str):  # pragma: no cover - dev helper
         abort(400)
 
     user = get_or_create_dev_user(enum)
-    login_user(user)
+    # Persist login across separate browser contexts
+    # (DevTools, Simple Browser, etc.)
+    try:
+        session.permanent = True
+    except Exception:
+        pass
+    # Remember cookie for 30 days to avoid re-login during dev
+    login_user(user, remember=True, duration=timedelta(days=30))
     next_url = request.args.get("next") or url_for("core_bp.dashboard")
     return redirect(next_url)
+
+
+@auth_bp.route("/__dev/ensure_login", methods=["GET"])  # dev-only convenience
+def dev_ensure_login():  # pragma: no cover - dev helper
+    """Ensure there's an authenticated dev session, then redirect.
+
+    Usage (dev only): /__dev/ensure_login?role=admin&next=/agenda
+    If already logged in, just redirects. If not, logs in with the
+    requested role.
+    """
+    if not (current_app.debug or current_app.config.get("TESTING")):
+        abort(404)
+
+    # If user already authenticated, just forward
+    try:
+        from flask_login import current_user
+        if current_user and getattr(current_user, "is_authenticated", False):
+            nxt = request.args.get("next") or url_for("core_bp.dashboard")
+            return redirect(nxt)
+    except Exception:
+        pass
+
+    role = (request.args.get("role") or "admin").strip().lower()
+    role_map = {
+        "admin": RoleEnum.ADMIN,
+        "dentista": RoleEnum.DENTISTA,
+        "secretaria": RoleEnum.SECRETARIA,
+    }
+    enum = role_map.get(role, RoleEnum.ADMIN)
+    user = get_or_create_dev_user(enum)
+    try:
+        session.permanent = True
+    except Exception:
+        pass
+    login_user(user, remember=True, duration=timedelta(days=30))
+    nxt = request.args.get("next") or url_for("core_bp.dashboard")
+    return redirect(nxt)

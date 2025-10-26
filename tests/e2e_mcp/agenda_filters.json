@@ -1,0 +1,25 @@
+{
+  "name": "Agenda Filters",
+  "description": "Toggle dentist filters, include_unassigned, and empty selection notice.",
+  "steps": [
+    { "type": "setViewport", "width": 1400, "height": 900 },
+    { "type": "navigate", "url": "${baseUrl}/agenda" },
+    { "type": "waitForText", "text": "Dentistas" },
+
+    { "type": "clickByText", "text": "Todos (sem dentista)" },
+    { "type": "delay", "ms": 400 },
+
+    { "type": "clickByText", "text": "Dentista" },
+    { "type": "delay", "ms": 400 },
+
+    { "type": "clickByText", "text": "Dentista" },
+    { "type": "delay", "ms": 400 },
+
+    { "type": "assertVisible", "text": "Nenhum dentista selecionado" },
+
+    { "type": "clickByText", "text": "Todos (sem dentista)" },
+    { "type": "delay", "ms": 400 },
+
+    { "type": "assertVisible", "text": "Todos (sem dentista)" }
+  ]
+}

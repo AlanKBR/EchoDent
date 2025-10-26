@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}EchoDent{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
+  {% block styles %}{% endblock %}
   <script src="{{ url_for('static', filename='js/theme-toggle.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   {% if current_user.is_authenticated %}
     {% include '_sidebar.html' %}
   {% endif %}
@@ -56,5 +57,6 @@
   </div>
   <!-- HTMX local (offline-first) -->
   <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>
