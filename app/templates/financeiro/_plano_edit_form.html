@@ -1,0 +1,37 @@
+<div class="card mb-3" id="plano-{{ plano.id }}">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <strong>Editar Plano #{{ plano.id }}</strong>
+      <span class="badge bg-secondary ms-2">{{ plano.status.name }}</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <form hx-post="{{ url_for('financeiro_bp.editar_plano', plano_id=plano.id) }}"
+          hx-target="#plano-{{ plano.id }}"
+          hx-swap="outerHTML">
+      <div class="mb-3">
+        <small class="text-muted">Edite nome e valor dos itens desta proposta.</small>
+      </div>
+      {% for item in plano.itens %}
+        <input type="hidden" name="item-{{ loop.index }}-id" value="{{ item.id }}">
+        <div class="row g-2 align-items-center mb-2">
+          <div class="col-7">
+            <input type="text" class="form-control" name="item-{{ loop.index }}-nome"
+                   value="{{ item.procedimento_nome_historico }}" required>
+          </div>
+          <div class="col-3">
+            <input type="number" step="0.01" class="form-control" name="item-{{ loop.index }}-valor"
+                   value="{{ item.valor_cobrado }}" required>
+          </div>
+        </div>
+      {% endfor %}
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a class="btn btn-outline-secondary"
+           hx-get="{{ url_for('financeiro_bp.plano_card', plano_id=plano.id) }}"
+           hx-target="#plano-{{ plano.id }}"
+           hx-swap="outerHTML">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>

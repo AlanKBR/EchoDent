@@ -1,0 +1,41 @@
+{# Fragmento: exibe a lista detalhada do Carnê Cosmético (ParcelaPrevista) #}
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Vencimento</th>
+        <th>Valor</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if lista_retorno and lista_retorno|length > 0 %}
+        {% for item in lista_retorno %}
+          {% set parcela = item.parcela %}
+          {% set status = item.status %}
+          {% set badge = 'bg-secondary' %}
+          {% if status == 'Paga' %}
+            {% set badge = 'bg-success' %}
+          {% elif status == 'Parcial' %}
+            {% set badge = 'bg-warning text-dark' %}
+          {% elif status == 'Pendente' %}
+            {% set badge = 'bg-secondary' %}
+          {% endif %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ parcela.data_vencimento.strftime('%d/%m/%Y') }}</td>
+            <td>{{ parcela.valor_previsto | format_currency }}</td>
+            <td>
+              <span class="badge {{ badge }}">{{ status }}</span>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="4" class="text-muted">Nenhuma parcela prevista.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>

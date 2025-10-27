@@ -19,9 +19,11 @@ from app.services.paciente_service import (
     save_media_file,
 )
 from app.services.financeiro_service import get_planos_by_paciente
+from app.services import paciente_service
 from flask import Response, send_from_directory, current_app
 from datetime import date
 import os
+from app.models import TimelineEvento  # noqa: F401 (kept for clarity)
 
 
 paciente_bp = Blueprint("paciente_bp", __name__, url_prefix="/pacientes")
@@ -39,7 +41,7 @@ def lista():  # pragma: no cover - thin controller
 def novo():  # pragma: no cover - thin controller
     if request.method == "POST":
         try:
-            create_paciente(request.form)
+            create_paciente(request.form, current_user.id)
             flash("Paciente criado com sucesso.", "success")
             return redirect(url_for("paciente_bp.lista"))
         except ValueError as e:
@@ -57,7 +59,7 @@ def editar(id: int):  # pragma: no cover - thin controller
 
     if request.method == "POST":
         try:
-            update_paciente(id, request.form)
+            update_paciente(id, request.form, current_user.id)
             flash("Paciente atualizado com sucesso.", "success")
             return redirect(url_for("paciente_bp.lista"))
         except ValueError as e:
@@ -73,11 +75,99 @@ def detalhe(paciente_id: int):  # pragma: no cover - thin controller
     if not paciente:
         flash("Paciente não encontrado.", "danger")
         return redirect(url_for("paciente_bp.lista"))
-    planos = get_planos_by_paciente(paciente_id)
+    # Shell apenas: conteúdo das abas carregado via HTMX
     return render_template(
         "pacientes/detalhe.html",
         paciente=paciente,
+        current_user=current_user,
+    )
+
+
+@paciente_bp.route(
+    "/<int:paciente_id>/tab/anamnese", methods=["GET"]
+)  # Tela 1
+@login_required
+def tab_anamnese(paciente_id: int):  # pragma: no cover - thin controller
+    paciente = get_paciente_by_id(paciente_id)
+    if not paciente:
+        return "", 404
+    anamnese_alert_tipo = paciente_service.check_anamnese_alert_status(
+        paciente
+    )
+    return render_template(
+        "pacientes/_tab_anamnese.html",
+        paciente=paciente,
+        current_user=current_user,
+        anamnese_alert_tipo=anamnese_alert_tipo,
+    )
+
+
+@paciente_bp.route(
+    "/<int:paciente_id>/tab/planejamento", methods=["GET"]
+)  # Tela 3
+@login_required
+def tab_planejamento(paciente_id: int):  # pragma: no cover - thin controller
+    paciente = get_paciente_by_id(paciente_id)
+    if not paciente:
+        return "", 404
+    planos = get_planos_by_paciente(paciente_id)
+    return render_template(
+        "pacientes/_tab_planejamento.html",
+        paciente=paciente,
         planos=planos,
+    )
+
+
+@paciente_bp.route(
+    "/<int:paciente_id>/tab/financeiro", methods=["GET"]
+)  # Tela 4
+@login_required
+def tab_financeiro(paciente_id: int):  # pragma: no cover - thin controller
+    paciente = get_paciente_by_id(paciente_id)
+    if not paciente:
+        return "", 404
+    planos = get_planos_by_paciente(paciente_id)
+    # Injetar info de caixa_aberto para cada plano (por data dos lançamentos)
+    from app.services.financeiro_service import is_caixa_dia_aberto
+    from collections import defaultdict
+    caixa_status_por_data = defaultdict(lambda: True)
+    for plano in planos:
+        # Para cada lançamento, verificar status do caixa do dia
+        caixa_aberto_lanc = []
+        for lanc in getattr(plano, 'lancamentos', []):
+            data_lanc = getattr(lanc, 'data_lancamento', None)
+            if data_lanc:
+                data_dia = data_lanc.date()
+                if data_dia not in caixa_status_por_data:
+                    caixa_status_por_data[data_dia] = is_caixa_dia_aberto(data_dia)
+                caixa_aberto_lanc.append(caixa_status_por_data[data_dia])
+            else:
+                caixa_aberto_lanc.append(True)
+        # Se algum lançamento do plano está com caixa aberto, permite estorno
+        setattr(plano, 'caixa_aberto_lancamentos', caixa_aberto_lanc)
+    return render_template(
+        "pacientes/_tab_financeiro.html",
+        paciente=paciente,
+        planos=planos,
+    )
+
+
+@paciente_bp.route(
+    "/<int:paciente_id>/tab/historico", methods=["GET"]
+)  # Tela 5
+@login_required
+def tab_historico(paciente_id: int):  # pragma: no cover - thin controller
+    paciente = get_paciente_by_id(paciente_id)
+    if not paciente:
+        return "", 404
+    try:
+        historico = paciente.timeline_eventos.limit(100).all()
+    except Exception:
+        historico = []
+    return render_template(
+        "pacientes/_tab_historico.html",
+        paciente=paciente,
+        historico=historico,
     )
 
 
@@ -90,7 +180,7 @@ def anamnese(paciente_id: int):  # pragma: no cover - thin controller
         return redirect(url_for("paciente_bp.lista"))
 
     if request.method == "POST":
-        update_anamnese(paciente_id, request.form)
+        update_anamnese(paciente_id, request.form, current_user.id)
         flash("Anamnese salva.", "success")
         return redirect(
             url_for("paciente_bp.detalhe", paciente_id=paciente_id)
@@ -125,7 +215,7 @@ def upload_media(paciente_id: int):  # pragma: no cover - thin controller
     file = request.files["file"]
     descricao = request.form.get("descricao") or None
     try:
-        save_media_file(paciente_id, file, descricao)
+        save_media_file(paciente_id, file, descricao, current_user.id)
         flash("Mídia salva com sucesso.", "success")
     except ValueError as e:
         flash(str(e), "danger")

@@ -8,7 +8,9 @@ from flask import current_app
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.models import Paciente, Anamnese, MediaPaciente
+from app.services import timeline_service
+from app.utils.sanitization import sanitizar_input
+from app.models import Paciente, Anamnese, MediaPaciente, AnamneseStatus
 
 
 def _parse_date(value: Optional[str]) -> Optional[date]:
@@ -36,23 +38,36 @@ def get_all_pacientes() -> List[Paciente]:
     )
 
 
-def create_paciente(form_data: Mapping[str, str]) -> Paciente:
+def create_paciente(form_data: Mapping[str, str], usuario_id: int) -> Paciente:
     p = Paciente()
-    p.nome_completo = (form_data.get("nome_completo") or "").strip()
+
+    # Nome obrigatório (aplicar sanitização)
+    _nome = sanitizar_input(form_data.get("nome_completo"))
+    p.nome_completo = _nome if isinstance(_nome, str) else ""
     if not p.nome_completo:
         raise ValueError("Nome do paciente é obrigatório.")
 
-    p.data_nascimento = _parse_date(form_data.get("data_nascimento"))
-    p.cpf = (form_data.get("cpf") or None) or None
-    p.telefone = (form_data.get("telefone") or None) or None
-    p.email = (form_data.get("email") or None) or None
-    p.cep = (form_data.get("cep") or None) or None
-    p.logradouro = (form_data.get("logradouro") or None) or None
-    p.numero = (form_data.get("numero") or None) or None
-    p.complemento = (form_data.get("complemento") or None) or None
-    p.bairro = (form_data.get("bairro") or None) or None
-    p.cidade = (form_data.get("cidade") or None) or None
-    p.estado = (form_data.get("estado") or None) or None
+    # Datas: sanitizar string antes de parse
+    p.data_nascimento = _parse_date(
+        cast(Optional[str], sanitizar_input(form_data.get("data_nascimento")))
+    )
+
+    # Campos simples de texto livre: sanitizar e normalizar para None se vazio
+    for field in (
+        "cpf",
+        "telefone",
+        "email",
+        "cep",
+        "logradouro",
+        "numero",
+        "complemento",
+        "bairro",
+        "cidade",
+        "estado",
+    ):
+        raw = form_data.get(field)
+        val = sanitizar_input(raw)
+        setattr(p, field, val if isinstance(val, str) and val else None)
 
     db.session.add(p)
     db.session.flush()  # ensure p.id
@@ -65,22 +80,40 @@ def create_paciente(form_data: Mapping[str, str]) -> Paciente:
         db.session.add(a)
 
     db.session.commit()
+    # Escrita dupla: registrar evento de UX após sucesso
+    try:
+        timeline_service.create_timeline_evento(
+            evento_tipo="CADASTRO",
+            descricao=f"Paciente '{p.nome_completo}' criado.",
+            usuario_id=usuario_id,
+            paciente_id=p.id,
+        )
+    except Exception:
+        # Não bloquear o fluxo principal por falha no log de UX
+        pass
     return p
 
 
 def update_paciente(
-    paciente_id: int, form_data: Mapping[str, str]
+    paciente_id: int, form_data: Mapping[str, str], usuario_id: int
 ) -> Paciente:
     p = get_paciente_by_id(paciente_id)
     if p is None:
         raise ValueError("Paciente não encontrado.")
 
-    nome = (form_data.get("nome_completo") or "").strip()
+    nome = cast(
+        Optional[str],
+        sanitizar_input(form_data.get("nome_completo")),
+    ) or ""
     if nome:
         p.nome_completo = nome
 
-    dn = _parse_date(form_data.get("data_nascimento"))
-    if form_data.get("data_nascimento") is not None:
+    # Sanitizar string da data antes de parsear. Manter semântica atual:
+    # se a key foi enviada (mesmo vazia), atualiza o campo com o
+    # resultado do parse (None quando vazio ou inválido).
+    raw_dn = form_data.get("data_nascimento")
+    dn = _parse_date(cast(Optional[str], sanitizar_input(raw_dn)))
+    if raw_dn is not None:
         p.data_nascimento = dn
 
     # Update other simple fields (set to None if provided empty)
@@ -97,16 +130,31 @@ def update_paciente(
         "estado",
     ):
         if field in form_data:
-            value = form_data.get(field) or None
-            setattr(p, field, value)
+            raw = form_data.get(field)
+            value = sanitizar_input(raw)
+            setattr(
+                p,
+                field,
+                value if isinstance(value, str) and value else None,
+            )
 
     db.session.add(p)
     db.session.commit()
+    # Escrita dupla: registrar evento de UX após sucesso
+    try:
+        timeline_service.create_timeline_evento(
+            evento_tipo="CADASTRO",
+            descricao="Dados cadastrais atualizados.",
+            usuario_id=usuario_id,
+            paciente_id=p.id,
+        )
+    except Exception:
+        pass
     return p
 
 
 def update_anamnese(
-    paciente_id: int, form_data: Mapping[str, Any]
+    paciente_id: int, form_data: Mapping[str, Any], usuario_id: int
 ) -> Anamnese:
     """Create or update a patient's Anamnese and compute red flags.
 
@@ -124,6 +172,8 @@ def update_anamnese(
         a = Anamnese()
         a.paciente_id = paciente.id
         db.session.add(a)
+    # Garantir tipagem explícita
+    a = cast(Anamnese, a)
 
     # Map possible form aliases to model fields
     alias_map: Dict[str, str] = {
@@ -160,11 +210,17 @@ def update_anamnese(
         }
         return None if low in safe_tokens else s
 
-    # Update known fields (with normalization of safe values)
+    # Update known fields (with sanitization + normalization of safe values)
     for form_key, model_key in alias_map.items():
         if form_key in form_data:
             raw = form_data.get(form_key)
-            val = _normalize_safe_text(cast(Optional[str], raw))
+            sanitized = sanitizar_input(cast(Optional[str], raw))
+            val = _normalize_safe_text(
+                cast(
+                    Optional[str],
+                    sanitized if isinstance(sanitized, str) else None,
+                )
+            )
             setattr(a, model_key, val)
 
     # Compute red flags
@@ -180,13 +236,34 @@ def update_anamnese(
                 flag = True
                 break
 
+    # Atualizar flags e metadados de status/atualização
     setattr(a, "has_red_flags", bool(flag))
+    # Marcar como concluída no ato de salvar
+    try:
+        from datetime import datetime, timezone
+    except Exception:
+        datetime = None  # type: ignore
+        timezone = None  # type: ignore
+    a.status = AnamneseStatus.CONCLUIDA
+    if datetime and timezone:
+        a.data_atualizacao = datetime.now(timezone.utc)
+
     db.session.commit()
+    # Escrita dupla: registrar evento de UX após sucesso
+    try:
+        timeline_service.create_timeline_evento(
+            evento_tipo="CLINICO",
+            descricao="Anamnese atualizada.",
+            usuario_id=usuario_id,
+            paciente_id=a.paciente_id,
+        )
+    except Exception:
+        pass
     return cast(Anamnese, a)
 
 
 def save_media_file(
-    paciente_id: int, file_storage, descricao: Optional[str]
+    paciente_id: int, file_storage, descricao: Optional[str], usuario_id: int
 ) -> MediaPaciente:
     """Save file under instance/media_storage/<paciente_id>/.
 
@@ -215,7 +292,59 @@ def save_media_file(
     media = MediaPaciente()
     media.paciente_id = paciente_id
     media.file_path = relative_path
-    media.descricao = (descricao or None)
+    _desc = sanitizar_input(descricao)
+    media.descricao = (
+        cast(Optional[str], _desc) if isinstance(_desc, str) else None
+    )
     db.session.add(media)
     db.session.commit()
+    # Escrita dupla: registrar evento de UX após sucesso
+    try:
+        descricao_log = media.descricao or os.path.basename(media.file_path)
+        timeline_service.create_timeline_evento(
+            evento_tipo="DOCUMENTO",
+            descricao=f"Mídia/Documento salvo: '{descricao_log}'.",
+            usuario_id=usuario_id,
+            paciente_id=media.paciente_id,
+        )
+    except Exception:
+        pass
     return media
+
+
+# ----------------------------------
+# Anamnese Alert Logic (Regra 7)
+# ----------------------------------
+def check_anamnese_alert_status(paciente: Paciente) -> Optional[str]:
+    """Retorna o tipo de alerta de Anamnese ou None quando OK.
+
+    Tipos possíveis:
+    - "AUSENTE": não há registro de Anamnese (1:1 esperado via relacionamento)
+    - "PENDENTE": status pendente OU sem data de atualização disponível
+    - "EXPIRADA": data de atualização anterior a 6 meses atrás
+
+    Observações:
+    - O modelo atual pode não possuir campos `status`/`data_atualizacao`.
+      Este helper lida com ambos os cenários de forma resiliente.
+    """
+    a = paciente.anamnese
+    if a is None:
+        return "AUSENTE"
+
+    # Status pendente ou nunca atualizada => alerta PENDENTE
+    if a.status == AnamneseStatus.PENDENTE:
+        return "PENDENTE"
+    if not a.data_atualizacao:
+        return "PENDENTE"
+
+    # Verificar expiração: > 180 dias (regra determinística)
+    from datetime import datetime, timezone, timedelta
+
+    dt = a.data_atualizacao
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    limite_expiracao = datetime.now(timezone.utc) - timedelta(days=180)
+    if dt < limite_expiracao:
+        return "EXPIRADA"
+
+    return None

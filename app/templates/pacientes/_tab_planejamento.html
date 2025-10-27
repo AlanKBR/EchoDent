@@ -1,0 +1,13 @@
+{# Tela 3: Planejamento Financeiro #}
+<div class="card mb-3">
+  <div class="card-header">Planejamento Financeiro</div>
+  <div class="card-body">
+    {% if planos %}
+      {% for plano in planos %}
+        {% include 'financeiro/_plano_card.html' %}
+      {% endfor %}
+    {% else %}
+      <p>Nenhum plano de tratamento cadastrado.</p>
+    {% endif %}
+  </div>
+</div>

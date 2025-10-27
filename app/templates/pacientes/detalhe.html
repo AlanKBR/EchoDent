@@ -1,111 +1,33 @@
-{% extends 'base.html' %}
-
-{% block title %}Paciente: {{ paciente.nome_completo }}{% endblock %}
+ {% extends 'base.html' %}
 
 {% block content %}
   <div class="card mb-3">
-    <div class="card-header">Paciente: {{ paciente.nome_completo }}</div>
-    <div class="card-body">
-      <ul>
-        <li><strong>CPF:</strong> {{ paciente.cpf or '—' }}</li>
-        <li><strong>Data de Nascimento:</strong> {{ paciente.data_nascimento or '—' }}</li>
-        <li><strong>Telefone:</strong> {{ paciente.telefone or '—' }}</li>
-        <li><strong>Email:</strong> {{ paciente.email or '—' }}</li>
-        <li><strong>Endereço:</strong>
-          {{ paciente.logradouro or '' }} {{ paciente.numero or '' }} {{ paciente.complemento or '' }},
-          {{ paciente.bairro or '' }}, {{ paciente.cidade or '' }} - {{ paciente.estado or '' }}
-          ({{ paciente.cep or '' }})
-        </li>
-      </ul>
+    <div class="card-header d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary btn-sm"
+         hx-get="{{ url_for('paciente_bp.tab_anamnese', paciente_id=paciente.id) }}"
+         hx-target="#tab-content-container" hx-swap="innerHTML">Ficha + Anamnese</a>
+      <a class="btn btn-outline-primary btn-sm"
+         hx-get="#"
+         hx-target="#tab-content-container" hx-swap="innerHTML"
+         aria-disabled="true">Odontograma Master</a>
+      <a class="btn btn-outline-primary btn-sm"
+         hx-get="{{ url_for('paciente_bp.tab_planejamento', paciente_id=paciente.id) }}"
+         hx-target="#tab-content-container" hx-swap="innerHTML">Planejamento Financeiro</a>
+      <a class="btn btn-outline-primary btn-sm"
+         hx-get="{{ url_for('paciente_bp.tab_financeiro', paciente_id=paciente.id) }}"
+         hx-target="#tab-content-container" hx-swap="innerHTML">Financeiro (Extrato)</a>
+      <a class="btn btn-outline-primary btn-sm"
+         hx-get="{{ url_for('paciente_bp.tab_historico', paciente_id=paciente.id) }}"
+         hx-target="#tab-content-container" hx-swap="innerHTML">Histórico</a>
     </div>
-  </div>
-
-  <div class="card mb-3">
-    <div class="card-header">Ações</div>
     <div class="card-body">
-  <div class="mb-3 flex flex-wrap gap-2">
-        <a href="{{ url_for('financeiro_bp.novo_plano_form', paciente_id=paciente.id) }}" class="btn btn-secondary">Novo Orçamento</a>
-        <a href="{{ url_for('financeiro_bp.recibo_avulso', paciente_id=paciente.id) }}" class="btn btn-secondary">Registrar Recibo Avulso</a>
-        <a href="{{ url_for('paciente_bp.imprimir_receita', paciente_id=paciente.id) }}" class="btn btn-secondary">Imprimir Receita</a>
-        <a href="{{ url_for('paciente_bp.imprimir_atestado', paciente_id=paciente.id) }}" class="btn btn-secondary">Imprimir Atestado</a>
-        <a href="{{ url_for('paciente_bp.anamnese', paciente_id=paciente.id) }}" class="btn btn-secondary">Editar Anamnese</a>
+      <div id="tab-content-container">
+        <div hx-get="{{ url_for('paciente_bp.tab_anamnese', paciente_id=paciente.id) }}"
+             hx-trigger="load"
+             hx-target="#tab-content-container"
+             hx-swap="innerHTML"></div>
       </div>
-      {% if paciente.anamnese and paciente.anamnese.has_red_flags %}
-  <div class="alert alert-warning">ATENÇÃO: Este paciente possui alertas médicos!</div>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="card mb-3">
-    <div class="card-header">Mídia (RX, Documentos)</div>
-    <div class="card-body">
-      <form method="POST" action="{{ url_for('paciente_bp.upload_media', paciente_id=paciente.id) }}" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <input type="text" name="descricao" placeholder="Descrição (opcional)">
-        <button type="submit" class="btn btn-primary">Salvar Mídia</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="card mb-3">
-    <div class="card-header">Arquivos de Mídia</div>
-    <div class="card-body">
-      {% if paciente.media %}
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Descrição</th>
-              <th>Enviado em</th>
-              <th>Arquivo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for m in paciente.media %}
-            <tr>
-              <td>{{ m.descricao or '—' }}</td>
-              <td>{{ m.uploaded_at }}</td>
-              <td>
-                <a href="{{ url_for('paciente_bp.get_media_file', media_id=m.id) }}" target="_blank" class="btn btn-secondary">Abrir</a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <p>Nenhum arquivo de mídia enviado.</p>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="card mb-3">
-    <div class="card-header">Histórico Financeiro</div>
-    <div class="card-body">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Status</th>
-            <th>Valor Total</th>
-            <th>Data da Criação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for plano in planos %}
-          <tr>
-            <td>
-              <a href="{{ url_for('financeiro_bp.plano_detalhe', plano_id=plano.id) }}">#{{ plano.id }}</a>
-            </td>
-            <td>{{ plano.status }}</td>
-            <td>{{ plano.valor_total }}</td>
-            <td>{{ plano.created_at }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="4">Nenhum plano encontrado para este paciente.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
     </div>
   </div>
 {% endblock %}
+ 

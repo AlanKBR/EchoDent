@@ -27,6 +27,11 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
     from .config import Config
 
     app.config.from_object(Config)
+    # Ensure a secret key for sessions in dev/test
+    if not app.config.get("SECRET_KEY"):
+        app.config["SECRET_KEY"] = os.environ.get(
+            "SECRET_KEY", "dev-secret-key"
+        )
     # Testing overrides via env for ephemeral DBs in tests
     if _config_name == "testing":
         app.config["TESTING"] = True
@@ -109,6 +114,8 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
         ("app.blueprints.paciente_bp", "paciente_bp"),
         ("app.blueprints.financeiro_bp", "financeiro_bp"),
         ("app.blueprints.agenda_bp", "agenda_bp"),
+        ("app.blueprints.odontograma_bp", "odontograma_bp"),
+        ("app.blueprints.admin_bp", "admin_bp"),
     ]
     for module_name, attr_name in bp_specs:
         try:
@@ -130,6 +137,18 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
     except Exception:
         pass
 
+    # Registrar filtros Jinja globais
+    try:
+        from .utils.template_filters import (
+            format_datetime_br,
+            format_currency,
+        )
+        app.jinja_env.filters["format_datetime_br"] = format_datetime_br
+        app.jinja_env.filters["format_currency"] = format_currency
+    except Exception:
+        # Em ambientes parciais de scaffold, ignore e siga em frente
+        pass
+
     # Context processor: lightweight cache busting for static assets
     @app.context_processor
     def inject_asset_version():  # pragma: no cover - trivial
@@ -142,6 +161,15 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
         except Exception:
             ver = "dev"
         return {"asset_v": ver}
+
+    # Context processor: expose RoleEnum to all templates
+    @app.context_processor
+    def inject_role_enum():  # pragma: no cover - trivial
+        try:
+            from .models import RoleEnum  # local import to avoid cycles
+            return {"RoleEnum": RoleEnum}
+        except Exception:
+            return {}
 
     return app
 

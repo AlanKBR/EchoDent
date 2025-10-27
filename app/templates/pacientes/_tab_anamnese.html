@@ -1,0 +1,116 @@
+{# Tela 1: Ficha + Anamnese #}
+<div class="card mb-3">
+  <div class="card-header">Paciente: {{ paciente.nome_completo }}</div>
+  <div class="card-body">
+    {% set alerta = anamnese_alert_tipo %}
+    {% if alerta %}
+      <div class="alert alert-warning mb-3" role="alert">
+        <strong>ATENÇÃO:</strong>
+        {% if alerta == 'AUSENTE' %}
+          Anamnese não preenchida.
+        {% elif alerta == 'PENDENTE' %}
+          Anamnese pendente de finalização.
+        {% elif alerta == 'EXPIRADA' %}
+          Anamnese expirada (mais de 6 meses). Revise e atualize.
+        {% else %}
+          Situação da anamnese requer atenção.
+        {% endif %}
+      </div>
+    {% endif %}
+    <ul>
+      <li><strong>CPF:</strong> {{ paciente.cpf or '—' }}</li>
+      <li><strong>Data de Nascimento:</strong> {{ paciente.data_nascimento or '—' }}</li>
+      <li><strong>Telefone:</strong> {{ paciente.telefone or '—' }}</li>
+      <li><strong>Email:</strong> {{ paciente.email or '—' }}</li>
+      <li><strong>Endereço:</strong>
+        {{ paciente.logradouro or '' }} {{ paciente.numero or '' }} {{ paciente.complemento or '' }},
+        {{ paciente.bairro or '' }}, {{ paciente.cidade or '' }} - {{ paciente.estado or '' }}
+        ({{ paciente.cep or '' }})
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Ações</div>
+  <div class="card-body">
+    <div class="mb-3 flex flex-wrap gap-2">
+      <a href="{{ url_for('financeiro_bp.novo_plano_form', paciente_id=paciente.id) }}" class="btn btn-secondary">Novo Orçamento</a>
+      <a href="{{ url_for('financeiro_bp.recibo_avulso', paciente_id=paciente.id) }}" class="btn btn-secondary">Registrar Recibo Avulso</a>
+      <a href="{{ url_for('paciente_bp.imprimir_receita', paciente_id=paciente.id) }}" class="btn btn-secondary">Imprimir Receita</a>
+      <a href="{{ url_for('paciente_bp.imprimir_atestado', paciente_id=paciente.id) }}" class="btn btn-secondary">Imprimir Atestado</a>
+      <a href="{{ url_for('paciente_bp.anamnese', paciente_id=paciente.id) }}" class="btn btn-secondary">Editar Anamnese</a>
+
+      <div id="snapshot_controls" class="mt-2">
+        {% if not paciente.odontograma_inicial_json %}
+          <button class="btn btn-secondary"
+                  hx-post="{{ url_for('odontograma_bp.post_odontograma_snapshot', paciente_id=paciente.id) }}"
+                  hx-target="#snapshot_status"
+                  hx-swap="innerHTML"
+                  hx-confirm="Isso salvará o estado ATUAL do odontograma como o 'Estado Inicial' imutável. Deseja continuar?">
+            Salvar Estado Inicial
+          </button>
+        {% else %}
+          <p class="text-success mb-2">
+            Snapshot inicial salvo em:
+            {{ paciente.odontograma_inicial_data | format_datetime_br }}
+          </p>
+          {% if current_user and current_user.role == RoleEnum.ADMIN %}
+            <button class="btn btn-danger btn-sm"
+                    hx-post="{{ url_for('odontograma_bp.post_odontograma_snapshot_force', paciente_id=paciente.id) }}"
+                    hx-target="#snapshot_status"
+                    hx-swap="innerHTML"
+                    hx-confirm="[ADMIN] Isso irá SOBRESCREVER o snapshot inicial existente com o estado atual. Esta ação é irreversível. Deseja continuar?">
+              Forçar Sobrescrita (Admin)
+            </button>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    <div id="snapshot_status" class="mt-2"></div>
+    {% if paciente.anamnese and paciente.anamnese.has_red_flags %}
+      <div class="alert alert-warning">ATENÇÃO: Este paciente possui alertas médicos!</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Mídia (RX, Documentos)</div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('paciente_bp.upload_media', paciente_id=paciente.id) }}" enctype="multipart/form-data">
+      <input type="file" name="file" required>
+      <input type="text" name="descricao" placeholder="Descrição (opcional)">
+      <button type="submit" class="btn btn-primary">Salvar Mídia</button>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Arquivos de Mídia</div>
+  <div class="card-body">
+    {% if paciente.media %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Enviado em</th>
+            <th>Arquivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in paciente.media %}
+          <tr>
+            <td>{{ m.descricao or '—' }}</td>
+            <td>{{ m.uploaded_at }}</td>
+            <td>
+              <a href="{{ url_for('paciente_bp.get_media_file', media_id=m.id) }}" target="_blank" class="btn btn-secondary">Abrir</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Nenhum arquivo de mídia enviado.</p>
+    {% endif %}
+  </div>
+</div>

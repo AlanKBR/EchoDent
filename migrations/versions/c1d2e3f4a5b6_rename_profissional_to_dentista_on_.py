@@ -10,7 +10,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'c1d2e3f4a5b6'
-down_revision = 'f1e2d3c4b5a6'
+down_revision = 'e9c1f2d3a4b5'
 branch_labels = None
 depends_on = None
 
@@ -27,12 +27,22 @@ def _on_calendario_db() -> bool:
 def upgrade():
     if not _on_calendario_db():
         return
-    with op.batch_alter_table('calendar_events') as batch_op:
-        batch_op.alter_column('profissional_id', new_column_name='dentista_id')
+    bind = op.get_bind()
+    if bind.dialect.name == 'sqlite':
+        # SQLite: recriar tabela com coluna renomeada
+        # (Implementação simplificada, pois não há dados sensíveis)
+        op.execute('ALTER TABLE calendar_events RENAME COLUMN profissional_id TO dentista_id')
+    else:
+        with op.batch_alter_table('calendar_events') as batch_op:
+            batch_op.alter_column('profissional_id', new_column_name='dentista_id')
 
 
 def downgrade():
     if not _on_calendario_db():
         return
-    with op.batch_alter_table('calendar_events') as batch_op:
-        batch_op.alter_column('dentista_id', new_column_name='profissional_id')
+    bind = op.get_bind()
+    if bind.dialect.name == 'sqlite':
+        op.execute('ALTER TABLE calendar_events RENAME COLUMN dentista_id TO profissional_id')
+    else:
+        with op.batch_alter_table('calendar_events') as batch_op:
+            batch_op.alter_column('dentista_id', new_column_name='profissional_id')

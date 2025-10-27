@@ -18,8 +18,10 @@ from flask_login import (
 from datetime import timedelta
 from flask import session
 
+
 from app.services.user_service import authenticate_user, get_or_create_dev_user
 from app.models import RoleEnum
+from app.utils.decorators import debug_only
 
 
 auth_bp = Blueprint("auth_bp", __name__)
@@ -54,6 +56,7 @@ def logout():  # pragma: no cover - thin controller
 
 
 @auth_bp.route("/__dev/login_as/<role>", methods=["GET"])  # dev-only
+@debug_only
 def dev_login_as(role: str):  # pragma: no cover - dev helper
     """Login as a specific role for local debugging.
 
@@ -91,6 +94,7 @@ def dev_login_as(role: str):  # pragma: no cover - dev helper
 
 
 @auth_bp.route("/__dev/ensure_login", methods=["GET"])  # dev-only convenience
+@debug_only
 def dev_ensure_login():  # pragma: no cover - dev helper
     """Ensure there's an authenticated dev session, then redirect.
 

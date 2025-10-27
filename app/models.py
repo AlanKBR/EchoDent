@@ -45,6 +45,18 @@ class StatusAgendamentoEnum(str, Enum):
     CANCELADO = "CANCELADO"
 
 
+# Status da Anamnese (Regra 7)
+class AnamneseStatus(str, Enum):
+    PENDENTE = "PENDENTE"
+    CONCLUIDA = "CONCLUIDA"
+
+
+# Status do Fechamento de Caixa (Regra 7)
+class CaixaStatus(str, Enum):
+    ABERTO = "ABERTO"
+    FECHADO = "FECHADO"
+
+
 # ----------------------------------
 # Models
 # ----------------------------------
@@ -142,6 +154,26 @@ class Paciente(db.Model):
         backref="paciente",
     )
 
+    # Eventos de timeline de UX (Tela 5)
+    timeline_eventos = db.relationship(
+        "TimelineEvento",
+        back_populates="paciente",
+        lazy="dynamic",
+        order_by="desc(TimelineEvento.timestamp)",
+        cascade="all, delete-orphan",
+    )
+
+    # Snapshot inicial e estados vivos do odontograma (Regra 3)
+    odontograma_inicial_json = db.Column(db.JSON, nullable=True)
+    odontograma_inicial_data = db.Column(
+        db.DateTime(timezone=True), nullable=True
+    )
+    odontograma_estados = db.relationship(
+        "OdontogramaDenteEstado",
+        back_populates="paciente",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Paciente {self.nome_completo}>"
 
@@ -166,6 +198,15 @@ class Anamnese(db.Model):
         default=False,
         server_default=db.text("0"),
     )
+    status = db.Column(
+        db.Enum(AnamneseStatus, name="anamnese_status_enum"),
+        nullable=False,
+        default=AnamneseStatus.PENDENTE,
+        server_default=db.text("'PENDENTE'"),
+    )
+
+    # Timestamp da última atualização (UTC, timezone-aware)
+    data_atualizacao = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # Backref para paciente (um-para-um)
     paciente = db.relationship(
@@ -180,10 +221,17 @@ class Anamnese(db.Model):
 
 class Procedimento(db.Model):
     __tablename__ = "procedimentos"
-
+    
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
     valor_padrao = db.Column(db.Numeric(10, 2), nullable=False)
+    # Soft-delete: preservar histórico/auditoria (Regra 7)
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True,
+        server_default=db.true(),
+    )
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Procedimento {self.nome}>"
@@ -235,6 +283,14 @@ class PlanoTratamento(db.Model):
         cascade="all, delete-orphan",
     )
 
+    # Carnê Cosmético (ParcelaPrevista) - lembretes visuais (Regra 4)
+    parcelas_previstas = db.relationship(
+        "ParcelaPrevista",
+        back_populates="plano",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+
     def __repr__(self) -> str:  # pragma: no cover
         return f"<PlanoTratamento id={self.id} paciente={self.paciente_id}>"
 
@@ -248,6 +304,12 @@ class ItemPlano(db.Model):
     )
     procedimento_id = db.Column(
         db.Integer, db.ForeignKey("procedimentos.id"), nullable=False
+    )
+    # Nome do procedimento congelado no momento da criação (Regra 4)
+    procedimento_nome_historico = db.Column(
+        db.String(255),
+        nullable=False,
+        server_default=db.text("'Procedimento não definido'"),
     )
     valor_cobrado = db.Column(db.Numeric(10, 2), nullable=False)
     descricao_dente_face = db.Column(db.String(50), nullable=True)
@@ -272,14 +334,111 @@ class LancamentoFinanceiro(db.Model):
     )
     valor = db.Column(db.Numeric(10, 2), nullable=False)
     metodo_pagamento = db.Column(db.String(50), nullable=False)
+    # Diferenciar pagamento vs ajuste (Regra 4)
+
+    class LancamentoTipo(str, Enum):
+        PAGAMENTO = "PAGAMENTO"
+        AJUSTE = "AJUSTE"
+
+    tipo_lancamento = db.Column(
+        db.Enum(LancamentoTipo, name="lancamento_tipo_enum"),
+        nullable=False,
+        default=LancamentoTipo.PAGAMENTO,
+        server_default=db.text("'PAGAMENTO'"),
+    )
+    # Motivo livre para ajustes (obrigatório no service quando AJUSTE)
+    notas_motivo = db.Column(db.Text, nullable=True)
     data_lancamento = db.Column(
         db.DateTime, nullable=False, server_default=db.func.now()
     )
 
     plano = db.relationship("PlanoTratamento", back_populates="lancamentos")
 
+    # Estorno: referência ao lançamento original (self-FK)
+    lancamento_estornado_id = db.Column(
+        db.Integer,
+        db.ForeignKey("lancamentos_financeiros.id"),
+        nullable=True,
+        index=True,
+    )
+    lancamento_original = db.relationship(
+        "LancamentoFinanceiro",
+        remote_side=[id],
+        backref="estornos",
+        foreign_keys=[lancamento_estornado_id],
+    )
+
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Lancamento plano_id={self.plano_id} valor={self.valor}>"
+
+    # Compat: alguns testes e UIs esperam a propriedade `valor_pago`
+    # como alias legível para o campo `valor`.
+    @property
+    def valor_pago(self):  # pragma: no cover - simples alias
+        return self.valor
+
+
+class ParcelaPrevista(db.Model):
+    """Lembrete visual de parcelas previstas para um plano (Carnê Cosmético).
+
+    Observações:
+    - Não possui campo de status; status é calculado dinamicamente (Regra 4).
+    - Mantida no bind default, com FK real para planos_tratamento.id.
+    """
+
+    __tablename__ = "parcela_prevista"
+
+    id = db.Column(db.Integer, primary_key=True)
+    plano_id = db.Column(
+        db.Integer, db.ForeignKey("planos_tratamento.id"), nullable=False
+    )
+    data_vencimento = db.Column(db.Date, nullable=False)
+    valor_previsto = db.Column(db.Numeric(10, 2), nullable=False)
+    observacao = db.Column(db.String(100), nullable=True)
+
+    plano = db.relationship(
+        "PlanoTratamento", back_populates="parcelas_previstas"
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"<ParcelaPrevista plano_id={self.plano_id} "
+            f"venc={self.data_vencimento} valor={self.valor_previsto}>"
+        )
+
+
+class OdontogramaDenteEstado(db.Model):
+    """Estado vivo do odontograma por dente.
+
+    Mantido no bind default junto ao Paciente para permitir FK real e
+    garantir unicidade (paciente_id, tooth_id).
+    """
+
+    __tablename__ = "odontograma_dente_estado"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "paciente_id", "tooth_id", name="uq_paciente_tooth_id"
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    paciente_id = db.Column(
+        db.Integer, db.ForeignKey("pacientes.id"), nullable=False, index=True
+    )
+    # FDI tooth id (e.g., "11", "48")
+    tooth_id = db.Column(db.String(3), nullable=False, index=True)
+    # JSON de estado conforme frontend (three_utils.js)
+    estado_json = db.Column(db.JSON, nullable=False)
+
+    paciente = db.relationship(
+        "Paciente", back_populates="odontograma_estados"
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"<OdontogramaDenteEstado paciente_id={self.paciente_id} "
+            f"tooth={self.tooth_id}>"
+        )
 
 
 # ----------------------------------
@@ -364,6 +523,70 @@ class Agendamento(db.Model):
             f"<Agendamento id={self.id} paciente_id={self.paciente_id} "
             f"{self.start_time} - {self.end_time} status={self.status}>"
         )
+
+
+# ----------------------------------
+# Timeline UX (default bind)
+# ----------------------------------
+
+
+# Contexto da Timeline (PACIENTE ou SISTEMA)
+class TimelineContexto(Enum):
+    PACIENTE = "PACIENTE"
+    SISTEMA = "SISTEMA"
+
+
+class TimelineEvento(db.Model):
+    """Evento legível para a timeline do paciente (Tela 5).
+
+    Populado via 'escrita dupla' pela camada de services (Regra 7).
+    Mantido no bind default (mesmo banco de Paciente) para FK real.
+    Suporta eventos de paciente e de sistema/admin.
+    """
+
+    __tablename__ = "timeline_evento"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # FK real, pois está no mesmo bind do modelo Paciente
+    paciente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("pacientes.id"),
+        nullable=True,  # Agora permite NULL para eventos de sistema
+        index=True,
+    )
+
+    # Referência lógica ao usuário (outro bind); não usar FK cross-bind
+    usuario_id = db.Column(db.Integer, nullable=True, index=True)
+
+    # Timestamp em UTC (timezone-aware)
+    timestamp = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=db.func.now(),
+        index=True,
+    )
+
+    # Categoria para filtragem e ícones na UI
+    evento_tipo = db.Column(db.String(50), nullable=False, index=True)
+
+    # Descrição legível exibida ao usuário
+    descricao = db.Column(db.Text, nullable=False)
+
+    # Contexto do evento (PACIENTE ou SISTEMA)
+    evento_contexto = db.Column(
+        db.Enum(TimelineContexto, name="timeline_contexto_enum"),
+        nullable=False,
+        default=TimelineContexto.PACIENTE,
+        server_default="PACIENTE",
+    )
+
+    # Relacionamento reverso
+    paciente = db.relationship("Paciente", back_populates="timeline_eventos")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        short = (self.descricao or "")[:30]
+        return f"<TimelineEvento {self.id} [{self.evento_tipo}] {short}>"
 
 
 # ----------------------------------
@@ -463,3 +686,29 @@ class Holiday(db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Holiday {self.date} {self.name} ({self.level}/{self.type})>"
+
+
+# ----------------------------------
+# Fechamento de Caixa (default bind)
+# ----------------------------------
+
+
+class FechamentoCaixa(db.Model):
+    """Controle de fechamento diário do caixa.
+
+    - Usado para travar estornos em dias já fechados (Regra 7).
+    """
+
+    __tablename__ = "fechamento_caixa"
+
+    data_fechamento = db.Column(db.Date, primary_key=True)
+    status = db.Column(
+        db.Enum(CaixaStatus, name="caixa_status_enum"),
+        nullable=False,
+        default=CaixaStatus.ABERTO,
+        server_default=db.text("'ABERTO'"),
+    )
+    saldo_apurado = db.Column(db.Numeric(10, 2), nullable=True)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<FechamentoCaixa {self.data_fechamento} {self.status}>"

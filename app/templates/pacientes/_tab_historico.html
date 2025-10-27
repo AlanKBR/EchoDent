@@ -1,0 +1,28 @@
+{# Tela 5: Histórico #}
+<div class="card mb-3">
+  <div class="card-header">Histórico</div>
+  <div class="card-body">
+    {% if historico %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data/Hora</th>
+            <th>Tipo</th>
+            <th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for evento in historico %}
+          <tr>
+            <td>{{ evento.timestamp | format_datetime_br }}</td>
+            <td>{{ evento.evento_tipo }}</td>
+            <td>{{ evento.descricao }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Nenhum evento histórico registrado.</p>
+    {% endif %}
+  </div>
+</div>

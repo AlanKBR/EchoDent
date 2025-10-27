@@ -1,0 +1,74 @@
+{# Tela 4: Financeiro (Extrato) #}
+<div class="card mb-3">
+  <div class="card-header">Financeiro (Extrato)</div>
+  <div class="card-body">
+    {% if planos %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Plano</th>
+            <th>Status</th>
+            <th>Valor Total</th>
+            <th>Saldo</th>
+            <th>Ajuste</th>
+            <th>Carnê</th>
+            <th>Lançamentos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for plano in planos %}
+          <tr>
+            <td>#{{ plano.id }}</td>
+            <td>{{ plano.status.name }}</td>
+            <td>{{ plano.valor_total | format_currency }}</td>
+            <td>{{ plano.saldo_devedor_calculado | format_currency }}</td>
+            <td>
+              {% if plano.status.name in ['APROVADO', 'CONCLUIDO'] %}
+                <button class="btn btn-sm btn-outline-secondary"
+                        hx-get="{{ url_for('financeiro_bp.ajuste_form', plano_id=plano.id) }}"
+                        hx-target="#ajuste-form-{{ plano.id }}"
+                        hx-swap="innerHTML">
+                  Ajuste
+                </button>
+                <div id="ajuste-form-{{ plano.id }}" class="mt-2"></div>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if plano.status.name in ['APROVADO', 'CONCLUIDO'] %}
+                <form class="d-flex gap-2 align-items-center"
+                      hx-post="{{ url_for('financeiro_bp.gerar_parcelas', plano_id=plano.id) }}"
+                      hx-target="#carne-container-{{ plano.id }}"
+                      hx-swap="innerHTML">
+                  <input type="number" name="num_parcelas" min="1" value="3" class="form-control form-control-sm" style="width: 5rem;" required>
+                  <input type="date" name="data_inicio" class="form-control form-control-sm" required>
+                  <button type="submit" class="btn btn-sm btn-primary">Gerar</button>
+                </form>
+                <div class="mt-2" id="carne-container-{{ plano.id }}"></div>
+                <button class="btn btn-link btn-sm p-0 mt-1"
+                        hx-get="{{ url_for('financeiro_bp.carne_view', plano_id=plano.id) }}"
+                        hx-target="#carne-container-{{ plano.id }}"
+                        hx-swap="innerHTML">
+                  Ver carnê
+                </button>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if plano.lancamentos %}
+                {% include 'pacientes/_lista_lancamentos.html' %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Nenhum plano encontrado para este paciente.</p>
+    {% endif %}
+  </div>
+</div>

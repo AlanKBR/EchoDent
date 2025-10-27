@@ -1,0 +1,19 @@
+<form
+  hx-post="{{ url_for('financeiro_bp.ajustar_plano', plano_id=plano_id) }}"
+  hx-swap="none"
+>
+  <div class="mb-2">
+    <label>Valor do Ajuste
+      <input type="number" step="0.01" name="valor" required />
+    </label>
+    <small class="form-text text-muted">Use valores negativos para descontos/estornos, positivos para acréscimos/juros.</small>
+  </div>
+  <div class="mb-2">
+    <label>Motivo (obrigatório)
+      <input type="text" name="notas_motivo" required maxlength="255" />
+    </label>
+  </div>
+  <div class="mt-2">
+    <button type="submit" class="btn btn-warning">Aplicar Ajuste</button>
+  </div>
+</form>

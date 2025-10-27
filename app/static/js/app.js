@@ -64,6 +64,55 @@
     }
   });
 
+  // --- Início: Lógica de Prevenção de Saída Suja (Regra 8) ---
+  // B1: Flag Global
+  window.isFormDirty = false;
+
+  // B2: Acionadores (Set Flag)
+  doc.body.addEventListener('input', function (event) {
+    if (event.target && event.target.closest && event.target.closest('form')) {
+      window.isFormDirty = true;
+    }
+  });
+
+  // B3: Reset da Flag (Após salvar com sucesso)
+  doc.body.addEventListener('htmx:afterRequest', function (event) {
+    const detail = event && event.detail;
+    const req = detail && detail.requestConfig;
+    const verb = req && req.verb ? String(req.verb).toUpperCase() : '';
+    const isWrite = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(verb);
+    if (isWrite) {
+      if (!detail || !detail.failed) {
+        window.isFormDirty = false;
+      }
+    }
+  });
+
+  // B4: A Trava (O Guarda) — antes de requisições HTMX
+  doc.body.addEventListener('htmx:beforeRequest', function (event) {
+    try {
+      if (!window.isFormDirty) return;
+      const elt = event && event.detail && event.detail.elt;
+      if (!elt) return;
+
+      // Permite submissões de formulário (o usuário está tentando salvar)
+      if (elt.closest && elt.closest('form')) return;
+
+      const confirmExit = window.confirm(
+        'Você possui alterações não salvas. Deseja realmente sair e descartar as alterações?'
+      );
+      if (!confirmExit) {
+        event.preventDefault();
+        return;
+      }
+      // Usuário confirmou saída: reset flag para permitir a navegação
+      window.isFormDirty = false;
+    } catch (_) {
+      // Em caso de erro na checagem, não bloquear a navegação
+    }
+  });
+  // --- Fim: Lógica de Prevenção de Saída Suja ---
+
   async function copyErrorToClipboard() {
     try {
       if (!textEl) return;

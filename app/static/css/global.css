@@ -639,3 +639,14 @@ thead th {
 	color: var(--color-primary-dark);
 	border: 1px solid color-mix(in oklab, var(--color-primary-main) 50%, var(--color-border));
 }
+
+/* =====================================
+	Regra 8 — Prevenção de Clique Duplo (HTMX)
+	Desabilita interações e dá feedback visual enquanto a requisição está em andamento.
+===================================== */
+.htmx-request,
+.htmx-request * {
+	pointer-events: none !important;
+	opacity: 0.7;
+	cursor: wait !important;
+}

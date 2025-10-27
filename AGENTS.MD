@@ -1,152 +1,75 @@
-# EchoDent - Diretrizes de Arquitetura
+# EchoDent - Diretrizes de Arquitetura (v2)
 
-Este projeto segue uma arquitetura específica. Suas ações de codificação devem aderir estritamente a estas regras:
+Este projeto, **EchoDental**, é um sucessor espiritual do OdontoClin (https://github.com/AlanKBR/OdontoClin). Suas ações de codificação DEVEM aderir estritamente a estas regras de arquitetura, workflow e robustez.
 
 ## 1. Stack e Filosofia
 * **Backend:** Flask
 * **Frontend:** HTMX (Arquitetura de Hipermídia). O backend renderiza HTML.
 * **PDFs:** WeasyPrint (renderizando templates Jinja).
-* **Filosofia:** Offline-first (rede local), robustez, simplicidade.
+* **3D:** Three.js (para o Odontograma Master).
+* **Filosofia:** Offline-first (rede local), robustez, simplicidade, workflow clínico-primeiro.
 
-## 2. O "Fluxo de Ouro" (Lógica Financeira Central)
-* **Fonte da Verdade:** O `PlanoTratamento` é a única fonte de débito.
-* **Gatilho:** O `Saldo Devedor` só existe *após* um `PlanoTratamento` ter o status "Aprovado".
-* **Integridade:** Todo `LancamentoFinanceiro` (pagamento) *deve* ter uma `ForeignKey` para um `PlanoTratamento`.
-* **Recibo Avulso:** Para pagamentos "avulsos" (ex: venda de escova), o *service* deve primeiro criar um `PlanoTratamento` "fantasma" (ex: status="Concluído") e atrelar o pagamento a ele.
+## 2. Arquitetura de UI (As 5 Telas do Paciente)
+A interação com o paciente é centralizada em 5 abas/telas:
+1.  **`[Ficha + Anamnese]`:** Dados cadastrais (com `BrasilAPI` para CEP) e Anamnese (com alertas de pendência/revalidação).
+2.  **`[Odontograma Master]` (3D):** O hub *clínico* (Three.js) para diagnóstico. Salva dados na tabela `AchadoClinico`. Possui um "Catálogo de Serviços" (pesquisa) para adicionar itens avulsos (ex: Limpeza).
+3.  **`[Planejamento Financeiro]` (Orçamentos):** A lista de `PlanoTratamento`. Mostra um **Diagrama 2D-SVG** (dinâmico) para cada plano.
+4.  **`[Financeiro (Extrato)]`:** O extrato global do paciente, o "Carnê Cosmético" (`ParcelaPrevista`), e os botões de Admin (`Ajustar Saldo`, `Estorno`).
+5.  **`[Histórico]`:** A timeline *legível* (vinda da tabela `TimelineEvento`).
 
-## 3. Arquitetura de Código (Layers)
-* **`app/models.py`:** Um arquivo *único* para *todos* os modelos SQLAlchemy. (Evitar importação circular).
+## 3. Workflow Clínico (Odontograma)
+* **Master (3D) vs. Snapshot (2D):** A Tela 2 (3D) é a ferramenta de trabalho "viva". A Tela 3 (Plano) DEVE exibir um "snapshot" 2D-SVG dinâmico, *apenas* com os itens daquele plano.
+* **Estado (Inicial vs. Atual):**
+    * **"Atual" (Vivo):** A tabela `AchadoClinico` (minimalista: `paciente_id`, `dente`, `faces`, `diagnostico_cod`) é a fonte da verdade do Odontograma Master.
+    * **"Inicial" (Imutável):** O campo `Paciente.odontograma_inicial_json` armazena um snapshot JSON do primeiro diagnóstico, que SÓ PODE ser sobrescrito por um Admin.
+* **Lançamento Avulso (Catálogo):** O `service` DEVE suportar a criação de `ItemPlano` com `dente=NULL` e `achado_clinico_id=NULL` (vindos do "Catálogo de Serviços" na Tela 2).
+
+## 4. Workflow Financeiro (O "Plano Perfeito")
+* **Fonte da Verdade (A "Soma Burra"):** O `Saldo Devedor` DEVE ser sempre um cálculo dinâmico: `Plano.valor_total - SUM(Lancamentos.valor_pago)`.
+* **Crédito (Saldo Negativo):** O `service` DEVE permitir um Saldo Devedor negativo (ex: -R$ 50,00). A UI DEVE renderizar isso como "Crédito Disponível".
+* **Fase 1: `PROPOSTO` (Flexível):** O `service` DEVE permitir a edição (via UI/HTMX) dos campos `ItemPlano.procedimento_nome_historico` e `ItemPlano.valor_cobrado`.
+* **Fase 2: `APROVADO` (Selado):** O `service` DEVE *bloquear* a edição desses campos.
+* **Preços (Congelados):** O `service` DEVE "congelar" (denormalizar) o preço e o nome no `ItemPlano` no momento da criação. O `PlanoTratamento` *não* será afetado por reajustes futuros (Regra "Orto").
+* **Parcelas (Carnê Cosmético):** O modelo `ParcelaPrevista` é *apenas* um lembrete visual (sem status). A UI (Jinja) DEVE renderizar o status (`Paga/Parcial/Pendente`) dinamicamente, comparando `SUM(Lancamentos.valor_pago)` contra a lista de `ParcelaPrevista`.
+* **Ajustes (Desconto/Juros/Quitação):** *NÃO* se edita um plano `APROVADO`. Ajustes DEVEM ser feitos criando um `LancamentoFinanceiro` com `tipo_lancamento="AJUSTE"` e `notas_motivo` (obrigatório).
+* **Upsell (Mudança de Plano):** *NÃO* usar `parent_plan`. Criar um `PlanoTratamento` (Orçamento) *novo* e independente, que pode conter itens de estorno (valor negativo).
+* **Inadimplência:** *NÃO* usar status `CANCELADO`. A dívida é permanente. O `Plano` fica `APROVADO` (a menos que quitado via `AJUSTE`).
+
+## 5. Arquitetura de Código (Layers)
+* **`app/models.py`:** Um arquivo *único* para *todos* os modelos SQLAlchemy.
 * **`app/services/`:** Pacote para *toda* lógica de negócio (ex: `financeiro_service.py`).
 * **`app/blueprints/`:** Pacote para rotas "burras" (thin controllers) que chamam os *services* e renderizam templates.
-* **Estilização (CSS):** Usar preferencialmente um arquivo `global.css` centralizado (ex: `app/static/css/global.css`). Para módulos complexos (ex.: Agenda), é permitido CSS escopado ao contêiner raiz da página (ex.: `.agenda-card`) para evitar vazamento global.
-* **Frontend (Boas Práticas):** É proibido CSS/JS inline nos `.html` — inclusive atributos `style="..."`. Todo CSS deve estar no `global.css` (ou arquivos .css linkados) e todo JS em arquivos `.js` separados (ex: `app/static/js/`).
 
-## 4. Banco de Dados (Multi-Bind SQLite)
-* **Arquitetura:** Múltiplos bancos SQLite (ex: `pacientes.db`, `users.db`, `history.db`).
-* **Gerenciamento:** `SQLAlchemy Binds` no Flask.
-* **Foreign Keys (Importante):** *Não* podemos usar `db.ForeignKey` entre bancos diferentes (binds). A integridade referencial (ex: checar se `dentista_id` existe no `users.db`) deve ser validada *manualmente* na camada de `services/`.
-* **Concorrência (Mandatório):** Todos os bancos (`.db`) devem usar `PRAGMA journal_mode=WAL`. Isso deve ser configurado nos eventos do SQLAlchemy.
-* **Migrações:** Usar `Flask-Migrate` (Alembic) configurado para suportar *multi-bind*.
+## 6. Banco de Dados (Regras Multi-Bind SQLite)
+* **Arquitetura:** Múltiplos bancos SQLite (ex: `pacientes.db`, `users.db`, `history.db`) gerenciados via `SQLAlchemy Binds`.
+* **Foreign Keys (Importante):** *NÃO* usar `db.ForeignKey` entre bancos diferentes (binds). A integridade referencial DEVE ser validada *manualmente* na camada de `services/`.
+* **Concorrência (Mandatório):** Todos os bancos (`.db`) DEVEM usar `PRAGMA journal_mode=WAL` (configurado via eventos SQLAlchemy).
+* **Migrações (Mandatório):** Usar `Flask-Migrate` (Alembic) configurado para suportar *multi-bind*.
 
-## 5. Requisitos de Segurança e Legais
-* **Offboarding (Mandatório):** *Sempre* usar Soft-Delete para o modelo `Usuario` (um campo `is_active = False`). Nunca excluir um usuário, para preservar o histórico.
-* **Auditoria:** Um `history.db` dedicado. Os logs devem ser criados automaticamente (via eventos SQLAlchemy) capturando `user_id` e `changes_json`.
-* **Mídia (RX):** Salvar arquivos em `instance/media_storage/`. Usar caminhos relativos no DB. *Não* usar blobs.
+## 7. Requisitos de Robustez (Humano/Legal)
+* **Offboarding:** *Sempre* usar Soft-Delete (`is_active=False`) para `Usuario` e `ProcedimentoMestre`. Nunca excluir, para preservar o histórico.
+* **Log de Auditoria (Legal):** Um `history.db` dedicado. Logs criados automaticamente (via eventos SQLAlchemy) capturando `user_id` e `changes_json`.
+* **Log de Histórico (UX):** *NÃO* usar `SQL UNION`. Criar uma tabela `TimelineEvento` (dedicada) e populá-la (via escrita dupla) na camada de `services/` para uma timeline legível e performática.
+* **Anamnese (Segurança):** A UI DEVE exibir um "Alerta Amarelo" intrusivo se `Anamnese.status == "PENDENTE"` ou `Anamnese.data_atualizacao > 6 meses`.
+* **Atomicidade (Mandatório):** *Toda* função no `services/` que escreve no DB DEVE usar `try/commit/rollback` para garantir transações atômicas.
+* **Sanitização:** O `services/` DEVE usar uma função `utils.sanitizar_input()` em todos os campos de texto livre (`Text`, `String`) antes de salvar no DB.
+* **Trava de Caixa:** O `service` de Estorno DEVE ser bloqueado se `FechamentoCaixa.status == "Fechado"`, forçando o Admin a usar um `AJUSTE` no dia atual.
 
-## 6. Datas, Horários e Timezone
-* **UTC em tudo:** Todos os campos `DateTime` devem usar `timezone=True` e defaults com timezone-aware (ex.: `datetime.now(timezone.utc)`).
-* **Proibido:** Evitar `datetime.utcnow()` (naive) e qualquer timestamp sem timezone.
-* **Apresentação:** Converter para horário local apenas na camada de template (UI). O que vai ao DB fica em UTC.
+## 8. Robustez de UI (Mandatório)
+* **Clique Duplo:** *Todo* botão/link de ação (`hx-post`, `hx-put`, etc.) DEVE ser desabilitado via CSS (`.htmx-request { pointer-events: none; }`) durante a requisição.
+* **Saída Suja:** O `global.js` DEVE implementar a flag `window.isFormDirty` (acionada por `<form>` *e* pelo `three.js`) e usar `htmx:beforeRequest` para disparar um `window.confirm()` e prevenir perda de dados.
 
-## 7. HTMX e Templates (Padrões)
-* **Hipermídia first:** Endpoints devem retornar HTML renderizado (parciais/fragmentos onde fizer sentido) — evitar JSON para a UI.
-* **Parciais reutilizáveis:** Componentes dinâmicos (ex.: linhas de tabelas, widgets) devem ter parciais Jinja específicas para HTMX (`_*.html`).
-* **Widgets (Slots na Sidebar e Página):** A sidebar global pode expor slots (ex.: `#agendaSidebarTop`, `#agendaSidebarBottom`) quando em páginas específicas (ex.: Agenda). Páginas que queiram preencher slots devem expor widgets autocontidos (markup + CSS escopado + inicialização JS idempotente).
-* **Motor de Widgets (HTMX - opcional):** Um mini-motor pode orquestrar regiões nomeadas (slots) e carregar widgets via endpoints parciais, com estado mínimo no cliente.
-	- Pros: reuso, lazy-load, fallback server-first, baixo JS, composição em templates.
-	- Contras: coordenação de estado entre widgets, prioridade/ordem dinâmica exigem convenções, atenção à performance (muitos requests paralelos).
-* **DOM Targets:** IDs/anchors estáveis para `hx-target` e `hx-swap`. Evitar dependência de seletores frágeis.
-* **Progressive enhancement:** A página base deve funcionar com full reload; HTMX melhora a UX, mas não deve ser obrigatório.
-* **Sem JS inline:** Qualquer JS complementar vai em `app/static/js/`. CSS somente em `app/static/css/global.css`.
-* **Design Tokens:** Toda UI deve ser construída sobre os Design Tokens (Variáveis CSS) definidos em `global.css`.
-* **Componentização de Estilos:** Usar classes de componentes (ex.: `.card`, `.btn`, `.alert`) em vez de estilizar elementos brutos.
-* **Estrutura de Páginas/Formulários:** Novos formulários/páginas devem usar a estrutura `.card` (com `.card-header` / `.card-body`) e botões `.btn-primary` / `.btn-secondary`.
-* **Boas Práticas de UI/UX (EchoDent):**
-	- Layouts responsivos com contenção por contêiner (ex.: popovers `.ed-popover` posicionados relativamente ao card/painel; evitar overlays globais).
-	- Botões e campos fundamentados em tokens; evitar dependência de bibliotecas CSS externas.
-	- Acessibilidade básica: `aria-*` consistentes, foco visível, rótulos, localizações.
-	- Listas longas usam rolagem interna e cabeçalhos sticky quando fizer sentido.
-	- CSS global só para tokens/componentes base; regras específicas por página devem ser escopadas ao seu contêiner raiz.
+## 9. Regras Técnicas (PDF, Datas, Mídia)
+* **Timezone (Mandatório):** Todos os `DateTime` no DB DEVEM ser `timezone=True` (UTC).
+* **PDFs:** Usar **WeasyPrint** com *import lazy* (dentro da rota) para não quebrar o app.
+* **Mídia (RX):** Salvar arquivos em `instance/media_storage/` com caminhos relativos. *Não* usar blobs. *Não* comprimir imagens de diagnóstico.
+* **PDF Salvo (Receitas/Atestados):** O `service` DEVE salvar o PDF gerado (`.pdf`) em disco no momento da *primeira* emissão e apenas servir esse arquivo estático em reimpressões (para "congelar" a data).
 
-## 8. PDFs e WeasyPrint (Windows)
-* **Dependências nativas:** Em Windows, é necessário MSYS2 + Pango. Configure `WEASYPRINT_DLL_DIRECTORIES` apontando para `C:\msys64\mingw64\bin` quando presente.
-* **Import lazy:** Os imports de WeasyPrint devem ocorrer dentro das rotas/serviços de impressão para não quebrar o app quando as DLLs não existirem.
-* **Falhas elegantes:** Se faltar dependência nativa, a rota deve responder com erro amigável/log claro, sem derrubar a aplicação.
-* **Offline-first:** Templates Jinja de PDF devem funcionar sem internet (fonts/assets locais).
+## 10. Regras de Frontend (CSS/JS)
+* **Proibido:** *NÃO* usar CSS/JS inline (atributos `style="..."` ou `<script>...</script>`).
+* **`global.css`:** Usar para Design Tokens (Variáveis CSS) e componentes (ex: `.card`).
+* **CSS Escopado:** Estilos de páginas específicas DEVEM ser escopados ao seu contêiner raiz (ex: `.ficha-paciente-container .tabela-especifica { ... }`).
 
-## 9. SQLAlchemy 2.x — Conformidade
-* **API 2.0:** Usar `Session.get(Model, id)` no lugar de `Query.get` (evitar Legacy API warnings).
-* **Timezone nos modelos:** Declarar `DateTime(timezone=True)` e defaults aware (ver Seção 6).
-* **WAL por bind:** Garantir `PRAGMA journal_mode=WAL` em todos os binds via listeners de engine.
-* **Multi-bind:** Nunca usar `db.ForeignKey` entre bancos. Integridade entre binds é responsabilidade da camada `services/` (validações explícitas).
-
-## 10. Segurança de Rotas e Papéis
-* **Autenticação:** Rotas mutáveis exigem usuário autenticado.
-* **Papéis (RBAC):** Restringir rotas administrativas (ex.: seeding, manutenção) a `ADMIN`. Evitar expor endpoints de debug em produção.
-* **CSRF:** Formularios de escrita devem usar proteção CSRF (ex.: Flask-WTF), quando aplicável ao stack vigente.
-* **Soft-Delete efetivo:** O fluxo de login deve checar `Usuario.is_active` para impedir acesso de desligados.
-
-## 11. Mídia (RX) — Política Detalhada
-* **Local de armazenamento:** `instance/media_storage/`, caminhos relativos gravados no DB.
-* **Tipos e tamanho:** Restringir tipos permitidos (ex.: imagens/PDF) e limite de tamanho configurável; validar no service antes de salvar.
-* **Sanitização:** Normalizar nomes de arquivos (sem espaços/caracteres proibidos) e evitar colisões (prefixo com UUID/data).
-* **Privacidade:** URLs de mídia não devem vazar informações sensíveis; preferir controle de acesso por rota protegida quando necessário.
-
-## 12. Fluxo de Ouro — Detalhes Operacionais
-* **Aprovação como gatilho:** O `Saldo Devedor` só passa a existir após `PlanoTratamento.status == APROVADO`.
-* **Pagamentos sempre com plano:** Todo `LancamentoFinanceiro` referencia um `PlanoTratamento` válido no mesmo bind.
-* **Recibo Avulso:** Criar um plano "fantasma" (ex.: `CONCLUIDO`) antes de registrar o pagamento avulso e associá-lo a este plano.
-* **Baixa do saldo:** Lançamentos reduzem o saldo do plano até zerar; status de quitação conforme regra de negócio.
-
-## 13. Observabilidade e Auditoria
-* **Eventos automáticos:** Logs em `history.db` via eventos SQLAlchemy, incluindo `user_id`, `timestamp UTC` e `changes_json`.
-* **Erros previsíveis:** Mensagens de erro devem ser amigáveis ao usuário e detalhadas no log (stack/causa raiz) para o operador.
-
-## 14. Checklist de Revisão (PR)
-* Modelos: `DateTime(timezone=True)` e defaults em UTC (aware)? Sem `Query.get` legado?
-* Services: validações entre binds estão presentes? Fluxo de Ouro respeitado (aprovado → saldo)?
-* Rotas: sem lógica pesada (thin controllers)? Protegidas por auth/papéis?
-* Templates/HTMX: sem CSS/JS inline? Parciais reutilizáveis? IDs estáveis para `hx-target`?
-* PDFs: Import lazy e falha elegante se WeasyPrint ausente? Assets locais?
-* Mídia: validação de tipos/tamanho e nomes sanitizados? Caminhos relativos?
-* DB: PRAGMA WAL por bind ativo? Sem FKs cross-bind? Migrações cientes de multi-bind?
-
-## 15. Atalhos de Desenvolvimento (Login Rápido) — DEV ONLY
-
-Para acelerar debugging local, existe uma rota de login rápido que cria/usa usuários sintéticos e autentica direto. Estes recursos são estritamente de desenvolvimento.
-
-### 15.1 Rota de Login Rápido
-
-- Endpoints:
-	- `GET /__dev/login_as/admin`
-	- `GET /__dev/login_as/dentista`
-	- `GET /__dev/login_as/secretaria`
-- Parâmetros opcionais:
-	- `?next=/alguma/rota` para redirecionar após o login (default: dashboard).
-- Guarda de segurança:
-	- Só funciona quando `app.debug == True` ou `TESTING == True`. Em produção responde `404`.
-- Usuários criados automaticamente (determinísticos):
-	- `dev_admin`, `dev_dentista`, `dev_secretaria` com `senha: devpass`.
-	- São usuários sintéticos para uso local — não representam pessoas reais.
-- Observações:
-	- Não depende do fluxo normal de autenticação; é um helper para testes manuais.
-	- Não use com dados reais. Em produção, a rota não é acessível.
-
-Exemplos de uso (navegador):
-
-- `http://localhost:5000/__dev/login_as/admin?next=/dashboard`
-- `http://localhost:5000/__dev/login_as/dentista?next=/dashboard`
-- `http://localhost:5000/__dev/login_as/secretaria?next=/dashboard`
-
-### 15.2 Purga de Usuários de Desenvolvimento
-
-Para limpar os usuários sintéticos criados pelo login rápido, use o script seguro `scripts/purge_dev_users.py`.
-
-- Segurança do script:
-	- Só executa sem `--force` quando `app.debug == True` ou `TESTING == True`.
-	- Apenas remove usernames na allowlist: `dev_admin`, `dev_dentista`, `dev_secretaria`.
-- Uso no Windows PowerShell:
-	- `$env:FLASK_DEBUG=1; python scripts/purge_dev_users.py`
-	- `python scripts/purge_dev_users.py --force`
-- Boas práticas:
-	- Use apenas em bancos/dev containers locais. Não execute contra dados reais.
-	- Este script existe para manter o ambiente de desenvolvimento limpo e não se aplica a offboarding real (ver Seção 5: soft-delete para usuários reais).
-
-## 16. UI/UX e JavaScript — Verificação Rápida (DevTools > Pytest)
-
-- Para alterações em UI/UX e JS (ex.: CSS, FullCalendar, HTMX/front), quase nunca é necessário rodar `pytest`.
-- Prefira validação visual com DevTools/MCP: siga os trechos de verificação em `docs/MCP_E2E_CHECKS.md` (console snippets).
-- Use cache-busting ao testar estáticos: defina `ASSET_VERSION` antes de iniciar o app para garantir que o navegador recarregue JS/CSS.
-- Mantenha as regras de arquitetura: nada de CSS/JS inline; escopo de estilos por página/contêiner.
-- Só rode `pytest` quando houver mudança em lógica de backend/serviços, contratos de API, ou quando um erro de UI indicar falha no servidor.
-- Exemplos rápidos: abra `/agenda`, execute os snippets de checagem (mini quadrado, formatação HH:MM – HH:MM, scroll contido) e ajuste CSS/JS conforme necessário.
+## 11. Dev Shortcuts (DEV ONLY)
+* As rotas `/__dev/login_as/...` e scripts de purga (como `purge_dev_users.py`) são permitidos, mas DEVEM ser bloqueados se `app.debug == False`.
+* Ignorar `pytest` para mudanças visuais (CSS/JS) é aceitável; focar em testes visuais.
