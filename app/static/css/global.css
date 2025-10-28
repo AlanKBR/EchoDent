@@ -392,6 +392,12 @@ thead th {
 /* Generic visibility helper used across components */
 .hidden { display: none !important; }
 
+/* Inline-style replacements for templates (utilities) */
+.text-wrap-break { word-break: break-all; }
+.overflow-y-auto { overflow-y: auto; }
+.max-h-300px { max-height: 300px; }
+.max-h-400px { max-height: 400px; }
+
 /* Respeito a acessibilidade: menos movimento quando preferido pelo usuário */
 @media (prefers-reduced-motion: reduce) {
 	*, *::before, *::after {

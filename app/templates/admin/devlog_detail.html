@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Detalhe do Log - EchoDent{% endblock %}
+{% block content %}
+<h1>Detalhe do Log</h1>
+<div class="card">
+  <div class="card-body">
+    <dl class="row">
+      <dt class="col-sm-3">ID</dt>
+      <dd class="col-sm-9">{{ log.id }}</dd>
+      <dt class="col-sm-3">Data/Hora</dt>
+      <dd class="col-sm-9">{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') if log.timestamp else '' }}</dd>
+      <dt class="col-sm-3">Tipo de Erro</dt>
+      <dd class="col-sm-9">{{ log.error_type }}</dd>
+      <dt class="col-sm-3">URL</dt>
+      <dd class="col-sm-9">{{ log.request_url }}</dd>
+      <dt class="col-sm-3">Método</dt>
+      <dd class="col-sm-9">{{ log.request_method }}</dd>
+      <dt class="col-sm-3">User ID</dt>
+      <dd class="col-sm-9">{{ log.user_id or '' }}</dd>
+      <dt class="col-sm-3">Request Body</dt>
+  <dd class="col-sm-9"><pre class="max-h-300px overflow-y-auto">{{ log.request_body }}</pre></dd>
+      <dt class="col-sm-3">Traceback</dt>
+  <dd class="col-sm-9"><pre class="max-h-400px overflow-y-auto">{{ log.traceback }}</pre></dd>
+    </dl>
+    <a href="{{ url_for('admin_bp.devlogs') }}" class="btn btn-secondary">Voltar à Lista</a>
+  </div>
+</div>
+{% endblock %}

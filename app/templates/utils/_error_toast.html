@@ -1,0 +1,12 @@
+<div class="alert alert-danger dev-error-toast" role="alert" id="dev-error-toast" hx-swap-oob="beforeend:#global-toast-container">
+    <button type="button" class="close" aria-label="Fechar" onclick="this.parentElement.remove()">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <strong>Erro de Desenvolvedor:</strong>
+    <div class="dev-error-message">
+        {{ error }}
+    </div>
+    {% if traceback %}
+    <pre class="dev-traceback">{{ traceback }}</pre>
+    {% endif %}
+</div>

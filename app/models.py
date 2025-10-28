@@ -1,7 +1,44 @@
-from __future__ import annotations
 
+from __future__ import annotations
+from . import db
 from enum import Enum
 from datetime import datetime, timezone
+
+
+
+# ----------------------------------
+# Developer Log (logs bind)
+# ----------------------------------
+class DeveloperLog(db.Model):
+    __bind_key__ = "logs"
+    __tablename__ = "developer_log"
+    __table_args__ = {"info": {"bind_key": "logs"}}
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    error_type = db.Column(db.String(100), nullable=False)
+    traceback = db.Column(db.Text, nullable=False)
+    request_url = db.Column(db.String(500), nullable=True)
+    request_method = db.Column(db.String(10), nullable=True)
+    user_id = db.Column(db.Integer, nullable=True)
+    request_body = db.Column(db.Text, nullable=True)
+
+
+
+
+# ----------------------------------
+# Configuração Global (default bind)
+# ----------------------------------
+class GlobalSetting(db.Model):
+    __tablename__ = "global_setting"
+    key = db.Column(db.String(100), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+
+
+
 
 """Model definitions for EchoDent.
 
@@ -12,8 +49,6 @@ only requires the User class to expose `is_authenticated`, `is_active`,
 fulfills that contract by evaluating to a truthy/falsey value, and helper
 properties/methods can be added later if/when authentication is wired.
 """
-
-from . import db
 
 
 # ----------------------------------
@@ -100,6 +135,14 @@ class Usuario(db.Model):
 
     def get_id(self) -> str:  # pragma: no cover - trivial
         return str(self.id)
+
+    # Helpers de papel para templates
+    @property
+    def is_admin(self) -> bool:  # pragma: no cover - simple predicate
+        try:
+            return self.role == RoleEnum.ADMIN
+        except Exception:
+            return False
 
 
 class Paciente(db.Model):

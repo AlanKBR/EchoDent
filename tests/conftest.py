@@ -9,7 +9,8 @@ from app import create_app, db
 
 @pytest.fixture(scope="session")
 def app() -> Generator:
-    # Create temporary SQLite files for default, users, and history binds
+    # Create temporary SQLite files for default, users, history, logs,
+    # and calendario binds
     def _temp_db_uri() -> str:
         fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
@@ -18,13 +19,17 @@ def app() -> Generator:
     default_uri = _temp_db_uri()
     users_uri = _temp_db_uri()
     history_uri = _temp_db_uri()
+    logs_uri = _temp_db_uri()
     cal_uri = _temp_db_uri()
 
     # Provide URIs to the app factory via environment variables
     os.environ["ECHO_TEST_DEFAULT_DB"] = default_uri
     os.environ["ECHO_TEST_USERS_DB"] = users_uri
     os.environ["ECHO_TEST_HISTORY_DB"] = history_uri
+    os.environ["ECHO_TEST_LOGS_DB"] = logs_uri
     os.environ["ECHO_TEST_CALENDARIO_DB"] = cal_uri
+
+    # Logs bind provided by app config; tests override via env
 
     _app = create_app("testing")
 
@@ -43,13 +48,21 @@ def app() -> Generator:
                 t for t in db.metadata.tables.values()
                 if t.info.get("bind_key") == bind_key
             ]
+            # Ensure DevLog table exists on 'logs' bind when not captured
+            if bind_key == "logs":
+                try:
+                    from app.models import DeveloperLog  # type: ignore
+                    table = getattr(DeveloperLog, "__table__", None)
+                    if table is not None and table not in bind_tables:
+                        bind_tables.append(table)
+                except Exception:
+                    pass
             if bind_tables:
                 db.metadata.create_all(bind=engine, tables=bind_tables)
 
         # Ensure 'usuarios' (users bind) exists even if on a different MetaData
         try:
             from app.models import Usuario  # type: ignore
-
             engine = getattr(db, "engines", {}).get("users")
             if engine is not None:
                 table = getattr(Usuario, "__table__", None)
@@ -61,7 +74,6 @@ def app() -> Generator:
         # Ensure 'log_auditoria' (history bind) exists
         try:
             from app.models import LogAuditoria  # type: ignore
-
             engine = getattr(db, "engines", {}).get("history")
             if engine is not None:
                 table = getattr(LogAuditoria, "__table__", None)
@@ -70,10 +82,11 @@ def app() -> Generator:
         except Exception:
             pass
 
+        # DeveloperLog (logs bind) is created via generic bind table creation
+
         # Ensure calendario bind tables exist (CalendarEvent, Holiday)
         try:
             from app.models import CalendarEvent, Holiday  # type: ignore
-
             cal_engine = getattr(db, "engines", {}).get("calendario")
             if cal_engine is not None:
                 ce_table = getattr(CalendarEvent, "__table__", None)

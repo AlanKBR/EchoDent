@@ -1,17 +1,30 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    abort,
+    Response,
+)
 from flask_login import login_required, current_user
 from decimal import Decimal
 from datetime import datetime
 from app.services import financeiro_service
+from app.services import settings_service
+from app.services import log_service
 from app.utils.decorators import admin_required
 
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/admin")
+
 
 @admin_bp.route("/caixa/fechar", methods=["GET"])
 @login_required
 @admin_required
 def fechar_caixa_form():
     return render_template("admin/_fechamento_caixa_form.html")
+
 
 @admin_bp.route("/caixa/fechar", methods=["POST"])
 @login_required
@@ -35,3 +48,54 @@ def fechar_caixa_submit():
     except ValueError as e:
         flash(str(e), "error")
         return redirect(url_for("admin_bp.fechar_caixa_form"))
+
+
+@admin_bp.route("/configuracoes", methods=["GET"])
+@login_required
+@admin_required
+def configuracoes():
+    settings = settings_service.get_all_settings()
+    return render_template("admin/configuracoes.html", settings=settings)
+
+
+@admin_bp.route("/configuracoes/update", methods=["POST"])
+@login_required
+@admin_required
+def configuracoes_update():
+    # Atualização atômica em lote (whitelist e sanitização no service)
+    settings_service.update_settings_bulk(request.form.to_dict())
+    # Resposta HTMX: redireciona para recarregar a página
+    return Response(
+        status=204,
+        headers={"HX-Redirect": url_for("admin_bp.configuracoes")},
+    )
+
+
+@admin_bp.route("/devlogs", methods=["GET"])
+@login_required
+@admin_required
+def devlogs():
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    pagination = log_service.get_logs_paginated(page=page, per_page=per_page)
+    return render_template("admin/devlogs.html", pagination=pagination)
+
+
+# Rota de detalhe de log
+@admin_bp.route("/devlogs/<int:log_id>", methods=["GET"])
+@login_required
+@admin_required
+def view_log_detail(log_id):
+    log = log_service.get_log_by_id(log_id)
+    if not log:
+        abort(404)
+    return render_template("admin/devlog_detail.html", log=log)
+
+
+@admin_bp.route("/devlogs/purge", methods=["POST"])
+@login_required
+@admin_required
+def purge_devlogs():
+    log_service.purge_all_logs()
+    # Resposta HTMX: redireciona para recarregar a página de logs
+    return ('', 204, {"HX-Redirect": "/admin/devlogs"})

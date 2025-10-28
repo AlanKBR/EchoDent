@@ -31,6 +31,8 @@ class Config:
         "history": _sqlite_uri("history.db"),
         # Novo bind para o módulo Agenda/Calendário
         "calendario": _sqlite_uri("calendario.db"),
+        # Bind dedicado para logs de desenvolvedor (DevLog)
+        "logs": _sqlite_uri("logs.db"),
     }
 
     # Desativa o rastreamento de alterações (economiza memória)
