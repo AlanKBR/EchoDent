@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Configurações Globais{% endblock %}
+{% block content %}
+<h1>Configurações Globais</h1>
+<form id="settings-form" hx-post="/admin/configuracoes/update" hx-target="this" hx-swap="outerHTML">
+  <div class="settings-list">
+    {% for key, value in settings %}
+      <div class="mb-3">
+        <label for="setting-{{ key }}" class="form-label">{{ key }}</label>
+        <input type="text" class="form-control" id="setting-{{ key }}" name="{{ key }}" value="{{ value|e }}">
+      </div>
+    {% endfor %}
+  </div>
+  <button type="submit" class="btn btn-primary">Salvar</button>
+</form>
+{% endblock %}
+{% block scripts %}{% endblock %}

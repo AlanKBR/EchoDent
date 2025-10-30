@@ -36,6 +36,8 @@ class GlobalSetting(db.Model):
     __tablename__ = "global_setting"
     key = db.Column(db.String(100), primary_key=True)
     value = db.Column(db.Text, nullable=True)
+    category = db.Column(db.String(50), nullable=True, default="geral")
+    description = db.Column(db.String(255), nullable=True)
 
 
 
