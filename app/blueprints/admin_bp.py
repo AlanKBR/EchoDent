@@ -54,6 +54,8 @@ def fechar_caixa_submit():
 @login_required
 @admin_required
 def configuracoes():
+    # Inicializar configurações padrão se não existirem
+    settings_service.initialize_default_settings()
     settings = settings_service.get_all_settings()
     return render_template("admin/configuracoes.html", settings=settings)
 
@@ -64,11 +66,53 @@ def configuracoes():
 def configuracoes_update():
     # Atualização atômica em lote (whitelist e sanitização no service)
     settings_service.update_settings_bulk(request.form.to_dict())
+    flash("Configurações salvas com sucesso!", "success")
     # Resposta HTMX: redireciona para recarregar a página
     return Response(
         status=204,
         headers={"HX-Redirect": url_for("admin_bp.configuracoes")},
     )
+
+
+@admin_bp.route("/theme.css", methods=["GET"])
+def theme_css():
+    """Gera CSS dinâmico com as cores de tema personalizadas."""
+    primary_color = settings_service.get_setting("THEME_PRIMARY_COLOR", "#10b981")
+    
+    # Helper para gerar variações de cor (light e dark)
+    def hex_to_rgb(hex_color):
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    
+    def adjust_brightness(rgb, factor):
+        return tuple(max(0, min(255, int(c * factor))) for c in rgb)
+    
+    def rgb_to_hex(rgb):
+        return '#{:02x}{:02x}{:02x}'.format(*rgb)
+    
+    try:
+        rgb = hex_to_rgb(primary_color)
+        light_rgb = adjust_brightness(rgb, 1.2)
+        dark_rgb = adjust_brightness(rgb, 0.8)
+        
+        primary_light = rgb_to_hex(light_rgb)
+        primary_dark = rgb_to_hex(dark_rgb)
+    except:
+        # Fallback para cores padrão
+        primary_color = "#10b981"
+        primary_light = "#34d399"
+        primary_dark = "#059669"
+    
+    css_content = f"""
+/* CSS dinâmico gerado a partir das configurações */
+:root {{
+    --color-primary-light: {primary_light};
+    --color-primary-main:  {primary_color};
+    --color-primary-dark:  {primary_dark};
+}}
+"""
+    
+    return Response(css_content, mimetype='text/css')
 
 
 @admin_bp.route("/devlogs", methods=["GET"])
