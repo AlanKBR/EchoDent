@@ -39,59 +39,68 @@ def get_all_pacientes() -> List[Paciente]:
 
 
 def create_paciente(form_data: Mapping[str, str], usuario_id: int) -> Paciente:
-    p = Paciente()
-
-    # Nome obrigatório (aplicar sanitização)
-    _nome = sanitizar_input(form_data.get("nome_completo"))
-    p.nome_completo = _nome if isinstance(_nome, str) else ""
-    if not p.nome_completo:
-        raise ValueError("Nome do paciente é obrigatório.")
-
-    # Datas: sanitizar string antes de parse
-    p.data_nascimento = _parse_date(
-        cast(Optional[str], sanitizar_input(form_data.get("data_nascimento")))
-    )
-
-    # Campos simples de texto livre: sanitizar e normalizar para None se vazio
-    for field in (
-        "cpf",
-        "telefone",
-        "email",
-        "cep",
-        "logradouro",
-        "numero",
-        "complemento",
-        "bairro",
-        "cidade",
-        "estado",
-    ):
-        raw = form_data.get(field)
-        val = sanitizar_input(raw)
-        setattr(p, field, val if isinstance(val, str) and val else None)
-
-    db.session.add(p)
-    db.session.flush()  # ensure p.id
-
-    # optionally create empty Anamnese
-    criar_anamnese = form_data.get("criar_anamnese")
-    if criar_anamnese:
-        a = Anamnese()
-        a.paciente_id = p.id
-        db.session.add(a)
-
-    db.session.commit()
-    # Escrita dupla: registrar evento de UX após sucesso
     try:
-        timeline_service.create_timeline_evento(
-            evento_tipo="CADASTRO",
-            descricao=f"Paciente '{p.nome_completo}' criado.",
-            usuario_id=usuario_id,
-            paciente_id=p.id,
+        p = Paciente()
+
+        # Nome obrigatório (aplicar sanitização)
+        _nome = sanitizar_input(form_data.get("nome_completo"))
+        p.nome_completo = _nome if isinstance(_nome, str) else ""
+        if not p.nome_completo:
+            raise ValueError("Nome do paciente é obrigatório.")
+
+        # Datas: sanitizar string antes de parse
+        p.data_nascimento = _parse_date(
+            cast(
+                Optional[str],
+                sanitizar_input(form_data.get("data_nascimento")),
+            )
         )
-    except Exception:
-        # Não bloquear o fluxo principal por falha no log de UX
-        pass
-    return p
+
+    # Campos simples de texto livre: sanitizar e normalizar para None
+    # se vazio
+        for field in (
+            "cpf",
+            "telefone",
+            "email",
+            "cep",
+            "logradouro",
+            "numero",
+            "complemento",
+            "bairro",
+            "cidade",
+            "estado",
+        ):
+            raw = form_data.get(field)
+            val = sanitizar_input(raw)
+            setattr(p, field, val if isinstance(val, str) and val else None)
+
+        db.session.add(p)
+        db.session.flush()  # ensure p.id
+
+        # optionally create empty Anamnese
+        criar_anamnese = form_data.get("criar_anamnese")
+        if criar_anamnese:
+            a = Anamnese()
+            a.paciente_id = p.id
+            db.session.add(a)
+
+        db.session.commit()
+        # Escrita dupla: registrar evento de UX após sucesso
+        try:
+            timeline_service.create_timeline_evento(
+                evento_tipo="CADASTRO",
+                descricao=f"Paciente '{p.nome_completo}' criado.",
+                usuario_id=usuario_id,
+                paciente_id=p.id,
+            )
+        except Exception:
+            # Não bloquear o fluxo principal por falha no log de UX
+            pass
+        return p
+    except Exception as exc:
+        db.session.rollback()
+        # Reempacotar para mensagem de domínio controlada
+        raise ValueError(f"Falha ao criar paciente: {exc}")
 
 
 def update_paciente(

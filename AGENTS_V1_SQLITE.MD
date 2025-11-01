@@ -1,6 +1,6 @@
-# EchoDent - Diretrizes de Arquitetura (v4 - Híbrida)
+# EchoDent - Diretrizes de Arquitetura (v2)
 
-Este projeto, **EchoDental**, é um sucessor espiritual do OdontoClin. Suas ações de codificação DEVEM aderir estritamente a estas regras de arquitetura, workflow e robustez.
+Este projeto, **EchoDental**, é um sucessor espiritual do OdontoClin (https://github.com/AlanKBR/OdontoClin). Suas ações de codificação DEVEM aderir estritamente a estas regras de arquitetura, workflow e robustez.
 
 ## 1. Stack e Filosofia
 * **Backend:** Flask
@@ -31,42 +31,29 @@ A interação com o paciente é centralizada em 5 abas/telas:
 * **Fase 2: `APROVADO` (Selado):** O `service` DEVE *bloquear* a edição desses campos.
 * **Preços (Congelados):** O `service` DEVE "congelar" (denormalizar) o preço e o nome no `ItemPlano` no momento da criação. O `PlanoTratamento` *não* será afetado por reajustes futuros (Regra "Orto").
 * **Parcelas (Carnê Cosmético):** O modelo `ParcelaPrevista` é *apenas* um lembrete visual (sem status). A UI (Jinja) DEVE renderizar o status (`Paga/Parcial/Pendente`) dinamicamente, comparando `SUM(Lancamentos.valor_pago)` contra a lista de `ParcelaPrevista`.
-* **Ajustes (Desconto/Juros/Quitação):** *NÃO* se edita um plano `APROVADO`. Ajustes DEVEM ser feitos criando um `LancamentoFinanceiro` com `tipo_lancamento="AJUSET"` e `notas_motivo` (obrigatório).
+* **Ajustes (Desconto/Juros/Quitação):** *NÃO* se edita um plano `APROVADO`. Ajustes DEVEM ser feitos criando um `LancamentoFinanceiro` com `tipo_lancamento="AJUSTE"` e `notas_motivo` (obrigatório).
 * **Upsell (Mudança de Plano):** *NÃO* usar `parent_plan`. Criar um `PlanoTratamento` (Orçamento) *novo* e independente, que pode conter itens de estorno (valor negativo).
-* **Inadimplência:** *NÃO* usar status `CANCELADO`. A dívida é permanente. O `Plano` fica `APROVADO` (a menos que quitado via `AJUSET`).
+* **Inadimplência:** *NÃO* usar status `CANCELADO`. A dívida é permanente. O `Plano` fica `APROVADO` (a menos que quitado via `AJUSTE`).
 
 ## 5. Arquitetura de Código (Layers)
 * **`app/models.py`:** Um arquivo *único* para *todos* os modelos SQLAlchemy.
 * **`app/services/`:** Pacote para *toda* lógica de negócio (ex: `financeiro_service.py`).
 * **`app/blueprints/`:** Pacote para rotas "burras" (thin controllers) que chamam os *services* e renderizam templates.
 
-## 6. Banco de Dados (Workflow Híbrido - PostgreSQL)
-* **Arquitetura:** Um único banco de dados PostgreSQL.
-* **Modelo Multi-Tenant:** Arquitetura "Schema-per-Tenant".
-* **Schemas:**
-    * **`public`:** Contém tabelas de governança global (ex: `Tenant`, `GlobalSetting`) e tabelas de infraestrutura (ex: `DeveloperLog`). Modelos DEVEM ser marcados com `__table_args__ = {"schema": "public"}`.
-    * **`tenant_xxx` (ex: `tenant_default`):** Contém todos os dados de negócios isolados da clínica (ex: `Paciente`, `Usuario`, `PlanoTratamento`, `LogAuditoria`). Modelos DEVEM ser agnósticos de schema (não possuem `__table_args__`).
-* **Resolução de Schema:** A aplicação (em `app/__init__.py`) DEVE interceptar todas as requisições (`@app.before_request`) e definir o `search_path` da sessão do banco de dados (ex: `SET LOCAL search_path TO tenant_default, public`).
-* **Foreign Keys (Importante):** `db.ForeignKey` são **mandatórias** para garantir a integridade referencial *dentro* de cada schema (ex: `Agendamento.dentista_id` -> `Usuario.id`).
-* **Concorrência (Mandatório):** O sistema depende do controle de concorrência (MVCC) nativo do PostgreSQL.
-* **Workflow de Schema (Híbrido - DEV):** O desenvolvimento é otimizado para velocidade.
-    * **Trabalho Diário (Rápido):** `flask dev-sync-db`. Este comando é a fonte da verdade para DEV. Ele DEVE apontar para o `DATABASE_URL` principal (ex: `echodent_dev`).
-    * **Execução do `dev-sync-db`:**
-        1.  `DROP/CREATE SCHEMAS` (`public`, `tenant_default`).
-        2.  `db.create_all()`: Constrói o schema *instantaneamente* a partir dos `app/models.py`. (Não usa `flask_migrate.upgrade()`).
-        3.  `seeder.py`: Popula os dados de teste.
-* **Migrações (Alembic - PROD):** A geração de migrações é uma ação de "consolidação" feita antes do deploy, não diariamente.
-    * **Geração (`migrate`):** O comando `flask db migrate` DEVE ser configurado (via `alembic.ini` ou `env.py`) para apontar para um "Banco Sombra" (ex: `SHADOW_DATABASE_URL=.../echodent_shadow`). Este banco sombra *nunca* é tocado pelo `dev-sync-db`, permitindo que o Alembic calcule o *diff* correto entre os `models.py` e o estado de migração anterior.
-    * **Aplicação (`upgrade`):** O comando `flask db upgrade` DEVE usar a lógica "two-pass" (Public -> Tenants) para aplicar os scripts gerados no ambiente de produção.
+## 6. Banco de Dados (Regras Multi-Bind SQLite)
+* **Arquitetura:** Múltiplos bancos SQLite (ex: `pacientes.db`, `users.db`, `history.db`) gerenciados via `SQLAlchemy Binds`.
+* **Foreign Keys (Importante):** *NÃO* usar `db.ForeignKey` entre bancos diferentes (binds). A integridade referencial DEVE ser validada *manualmente* na camada de `services/`.
+* **Concorrência (Mandatório):** Todos os bancos (`.db`) DEVEM usar `PRAGMA journal_mode=WAL` (configurado via eventos SQLAlchemy).
+* **Workflow de Schema (DEV):** Não usamos migrações (Alembic) em DEV. Para alterar o schema, o Agente DEVE: 1) Editar app/models.py (a fonte da verdade). 2) Editar app/seeder.py (para popular os novos campos/tabelas). A sincronia (Drop/Create/Seed) é automática no reinício do servidor (requer ECHODENTAL_DEV_SYNC=True).
 
 ## 7. Requisitos de Robustez (Humano/Legal)
 * **Offboarding:** *Sempre* usar Soft-Delete (`is_active=False`) para `Usuario` e `ProcedimentoMestre`. Nunca excluir, para preservar o histórico.
-* **Log de Auditoria (Legal):** Logs criados automaticamente (via eventos SQLAlchemy) capturando `user_id` e `changes_json`, armazenados no schema `tenant`.
+* **Log de Auditoria (Legal):** Um `history.db` dedicado. Logs criados automaticamente (via eventos SQLAlchemy) capturando `user_id` e `changes_json`.
 * **Log de Histórico (UX):** *NÃO* usar `SQL UNION`. Criar uma tabela `TimelineEvento` (dedicada) e populá-la (via escrita dupla) na camada de `services/` para uma timeline legível e performática.
 * **Anamnese (Segurança):** A UI DEVE exibir um "Alerta Amarelo" intrusivo se `Anamnese.status == "PENDENTE"` ou `Anamnese.data_atualizacao > 6 meses`.
 * **Atomicidade (Mandatório):** *Toda* função no `services/` que escreve no DB DEVE usar `try/commit/rollback` para garantir transações atômicas.
 * **Sanitização:** O `services/` DEVE usar uma função `utils.sanitizar_input()` em todos os campos de texto livre (`Text`, `String`) antes de salvar no DB.
-* **Trava de Caixa:** O `service` de Estorno DEVE ser bloqueado se `FechamentoCaixa.status == "Fechado"`, forçando o Admin a usar um `AJUSET` no dia atual.
+* **Trava de Caixa:** O `service` de Estorno DEVE ser bloqueado se `FechamentoCaixa.status == "Fechado"`, forçando o Admin a usar um `AJUSTE` no dia atual.
 
 ## 8. Robustez de UI (Mandatório)
 * **Clique Duplo:** *Todo* botão/link de ação (`hx-post`, `hx-put`, etc.) DEVE ser desabilitado via CSS (`.htmx-request { pointer-events: none; }`) durante a requisição.

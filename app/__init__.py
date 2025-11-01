@@ -2,12 +2,13 @@ import os
 from importlib import import_module
 from typing import Optional
 
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, g
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
+
 from flask_sqlalchemy import SQLAlchemy
 from flask_apscheduler import APScheduler
-from sqlalchemy import event
+from sqlalchemy import text
 
 
 # Extensões globais
@@ -80,6 +81,13 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+
+    # Registrar comandos de CLI (ex.: dev-sync-db)
+    try:
+        from .cli import register_cli  # type: ignore
+        register_cli(app)
+    except Exception:
+        pass
     # Optional: route name to redirect anonymous users
     try:
         login_manager.login_view = 'auth_bp.login'  # type: ignore[assignment]
@@ -116,34 +124,20 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
         replace_existing=True
     )
 
-    # Configuração de concorrência para SQLite: PRAGMA journal_mode=WAL
-    def _wal_listener():
-        def _set_wal(dbapi_connection, _):
-            try:
-                cursor = dbapi_connection.cursor()
-                cursor.execute("PRAGMA journal_mode=WAL")
-                cursor.close()
-            except Exception:
-                # Ignora conexões não SQLite
-                pass
-
-        return _set_wal
-
-    # Anexa listeners a todos os engines (padrão + binds)
-    with app.app_context():
-        engines = []
+    # Hook: define search_path por requisição (tenant_default por ora)
+    @app.before_request
+    def set_tenant_search_path():  # pragma: no cover - side-effectful
+        tenant_schema = "tenant_default"
+        g.tenant_schema = tenant_schema
         try:
-            engines.append(db.engine)
+            db.session.execute(
+                text(
+                    f"SET LOCAL search_path TO {tenant_schema}, public"
+                )
+            )
         except Exception:
+            # Evita quebrar rotas que não usam DB ou em ambientes parciais
             pass
-        try:
-            # Flask‑SQLAlchemy expõe todos engines em `db.engines`
-            engines.extend(getattr(db, "engines", {}).values())
-        except Exception:
-            pass
-
-        for eng in engines:
-            event.listen(eng, "connect", _wal_listener())
 
     # Registro de Blueprints (se existirem)
     bp_specs = [

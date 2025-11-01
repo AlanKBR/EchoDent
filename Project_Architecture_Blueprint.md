@@ -1,322 +1,389 @@
-# EchoDent Project Architecture Blueprint
+# EchoDent – Comprehensive Project Architecture Blueprint
 
-*Generated: 2025-10-27*
+Generated to serve as the definitive reference for EchoDent’s hybrid architecture, aligned with EchoDent - Diretrizes de Arquitetura (v4 - Híbrida).
 
----
+Generated on: 2025-10-31
+
+Configuration snapshot
+- Project type: Python (Flask, Jinja, HTMX)
+- Architecture pattern: Layered monolith with MVC-ish thin controllers (Blueprints) and service layer; Hybrid HATEOAS/Hypermedia UI
+- Diagram type: C4 (described textually)
+- Detail level: Comprehensive, implementation-ready
+- Includes: code examples, implementation patterns, decision records, extensibility focus
 
 ## 1. Architecture Detection and Analysis
 
-**Technology Stack:**
-- **Backend:** Python (Flask)
-- **Frontend:** HTMX (server-rendered HTML, hypermedia architecture)
-- **Database:** SQLite (multi-bind, managed via SQLAlchemy)
-- **ORM:** SQLAlchemy
-- **PDF Generation:** WeasyPrint (Jinja templates)
-- **3D Visualization:** Three.js (Odontograma Master)
-- **Migrations:** Flask-Migrate (Alembic, multi-bind)
-- **Testing:** pytest
+Detected stacks and frameworks
+- Backend: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Login, APScheduler
+- ORM/DB: SQLAlchemy 2.x style via Flask-SQLAlchemy; PostgreSQL (psycopg[binary])
+- Frontend: Server-rendered Jinja templates with HTMX for partial updates; Three.js planned for 3D odontogram (Tela 2)
+- PDFs: WeasyPrint (lazy import in routes)
+- Testing: pytest, pytest-flask, httpx
 
-**Architectural Pattern:**
-- Layered (MVC-inspired, with clear separation: models, services, blueprints/controllers)
-- Monolithic (single deployable, multi-DB)
-- Domain-driven boundaries (patient, finance, clinical, timeline)
-- Hypermedia-driven UI (HTMX)
+Detected architecture patterns
+- Layered: models (domain/data) → services (business) → blueprints (thin controllers rendering Jinja/HTMX)
+- Monolithic deployable with multi-tenant data separation via schema-per-tenant
+- Hypermedia-first UI: backend renders HTML fragments; HTMX swaps (no heavy client SPA)
+- Cross-cutting via events/listeners (audit) and a centralized error handler writing to DeveloperLog
 
-**Folder Structure:**
-- `app/models.py`: All SQLAlchemy models
-- `app/services/`: Business logic (service layer)
-- `app/blueprints/`: Flask blueprints (thin controllers)
-- `app/static/`, `app/templates/`: Frontend assets and Jinja templates
-- `utils/`: Shared utilities (sanitization, decorators, filters)
-- `migrations/`: Alembic migration scripts
+Key boundaries and enforcement
+- Blueprints never implement business rules; they call services in `app/services/`
+- Services own transactions (try/commit/rollback) and input sanitization
+- Models in a single module (`app/models.py`) with explicit enums and constraints; legal audit via `app/events.py`
+- Tenant isolation using PostgreSQL schemas with `SET LOCAL search_path TO <tenant>, public` per request (`@app.before_request`)
 
----
+Hybrid aspects and adaptations
+- “Master (3D) vs Snapshot (2D)” odontogram: live truth in `OdontogramaDenteEstado` and immutable snapshot in `Paciente.odontograma_inicial_json`
+- “Soma burra” finance: dynamic saldo derived from persisted totals and movements; UI derives statuses without extra status columns
+- Shadow DB for Alembic autogenerate; two-pass migration execution (public → tenants)
 
 ## 2. Architectural Overview
 
-EchoDent is designed for clinical workflow robustness, offline-first operation, and legal/UX compliance. The architecture enforces strict separation between data models, business logic, and presentation. All business rules reside in the `services/` layer, with blueprints acting as thin controllers. The UI is rendered server-side, with HTMX enabling dynamic, hypermedia-driven interactions. Multi-DB (multi-bind) is used for legal separation of concerns (patients, users, history).
+Guiding principles
+- Offline-first (local network), robustness, simplicity, workflow-first
+- Strong data integrity within each tenant schema (FKs inside schema), and legal/audit traceability
+- Deterministic time handling: all DateTime are timezone-aware (UTC)
 
----
+High-level components
+- Blueprints (controllers): `app/blueprints/*` – thin HTTP handlers mapping to service calls and template rendering
+- Services (business): `app/services/*` – domain logic, validation, atomic transactions, timeline writes
+- Models (data): `app/models.py` – all entities, enums, constraints; JSONB fields where appropriate
+- Events/Audit: `app/events.py` – SQLAlchemy session listeners capturing create/update/delete diffs into `LogAuditoria`
+- Error handling/logging: Global exception handler → `log_service.record_exception()` → `public.developer_log`
+- Background tasks: APScheduler for housekeeping (e.g., purge dev logs)
 
-## 3. Architecture Visualization
+Enforcement mechanisms
+- Architectural rules codified in services: sanitization via `utils.sanitization.sanitizar_input`, required try/commit/rollback, finance constraints
+- UI rules: HTMX request guardrails (e.g., disable double-click, confirm on dirty forms) implemented in global JS/CSS (see Diretrizes §8)
 
-**High-Level Overview:**
-- **Frontend (HTMX + Jinja):** Renders UI, triggers backend actions via hypermedia requests
-- **Blueprints (Controllers):** Route requests, invoke services, render templates
-- **Services:** Contain all business logic, enforce workflow, handle DB transactions
-- **Models:** SQLAlchemy models, one file for all entities
-- **Databases:** Multiple SQLite DBs (patients, users, history)
+## 3. Architecture Visualization (C4 textual)
 
-**Component Interactions:**
-- UI → Blueprint → Service → Model/DB
-- Service → Timeline/Event Logging (history DB)
-- Service → PDF Generation (WeasyPrint)
+System context (C4 Level 1)
+- Users: Admin, Dentista, Secretaria
+- System: EchoDent (Flask app)
+- External services: Brazil API (CEP), OS filesystem (media storage), WeasyPrint runtime dependencies on Windows (MSYS2)
 
-**Data Flow:**
-- User action (HTMX) → Flask route → Service method → DB update → Response (HTML fragment)
+Container view (C4 Level 2)
+- Web App (Flask): Blueprints handle requests, render Jinja/HTMX
+- Database (PostgreSQL): Single cluster; schemas: public + tenant_xxx
+  - public: governance (Tenant, GlobalSetting, DeveloperLog, Holiday)
+  - tenant_default (and others): clinical and finance data
 
----
+Component view (C4 Level 3)
+- Controller layer: `paciente_bp`, `financeiro_bp`, `odontograma_bp`, `agenda_bp`, `admin_bp`, etc.
+- Service layer: `paciente_service`, `financeiro_service`, `odontograma_service`, `timeline_service`, `log_service`, etc.
+- Data layer: entities in `app/models.py` with JSONB, enums, constraints
+- Cross-cutting: `events.py` (audit logs), global exception handler, APScheduler
+
+Data flow
+- Request → Blueprint → Service → DB transaction → TimelineEvento (double-write) → Render Jinja/HTMX partial
+- Errors bubble to global error handler → write DeveloperLog; optional dev toast when `GlobalSetting('DEV_LOGS_ENABLED') == true`
+- Before each request → set `search_path` to `tenant_default, public` (tenant routing hook)
 
 ## 4. Core Architectural Components
 
-### Blueprints (`app/blueprints/`)
-- **Purpose:** Route HTTP requests, invoke services, render templates
-- **Structure:** One blueprint per domain (e.g., paciente, financeiro)
-- **Interaction:** Call service methods, pass data to templates
-- **Evolution:** Add new blueprints for new domains; keep controllers thin
+Blueprints (thin controllers)
+- Purpose: routing, input collection, invoking services, rendering templates/partials
+- Interaction: call service functions; return full pages or HTMX fragments
+- Example: `financeiro_bp.editar_plano` reconstructs items_data, then delegates to `financeiro_service.update_plano_proposto`
 
-### Services (`app/services/`)
-- **Purpose:** All business logic, workflow enforcement, DB transactions
-- **Structure:** One service per domain (e.g., paciente_service.py)
-- **Interaction:** Called by blueprints, interact with models, utilities
-- **Evolution:** Add new services for new business domains; extend via new methods
+Services (business logic)
+- Responsibilities: validation, sanitization, transactions, domain rules, timeline events
+- Patterns: function-oriented services; explicit commit/rollback per operation
+- Examples:
+  - Atomic create: `financeiro_service.create_plano()` builds items (freeze name/price), commits, posts timeline
+  - Guard rails: `approve_plano()` disallows approving non-PROPOSTO; `add_lancamento_estorno()` enforces caixa lock
 
-### Models (`app/models.py`)
-- **Purpose:** Define all DB entities (SQLAlchemy)
-- **Structure:** Single file, all models
-- **Interaction:** Used by services for data access
-- **Evolution:** Add new models as needed; avoid cross-DB foreign keys
+Models (domain/data)
+- Centralized in `app/models.py`; Postgres-native features (JSONB, enums, constraints)
+- Key entities: Usuario, Paciente, Anamnese, PlanoTratamento, ItemPlano, LancamentoFinanceiro, ParcelaPrevista, OdontogramaDenteEstado, TimelineEvento, FechamentoCaixa, CalendarEvent, Holiday, LogAuditoria, DeveloperLog, Tenant, GlobalSetting
+- Boundaries: FK only within tenant schema (public models explicitly use `__table_args__ = {"schema": "public"}`)
 
-### Utilities (`app/utils/`)
-- **Purpose:** Shared helpers (sanitization, decorators, filters)
-- **Structure:** Modular utility files
-- **Interaction:** Used by services and blueprints
-- **Evolution:** Add new utility modules as needed
+Events/Audit
+- SQLAlchemy listeners on session: before_flush (updates, deletes) and after_flush_postexec (creates)
+- Captures diffs JSON and user_id; persists to `LogAuditoria` atomically
 
----
+Background jobs
+- APScheduler global: registered in app factory; daily job to purge old dev logs via `log_service.purge_old_logs`
 
 ## 5. Architectural Layers and Dependencies
 
-- **Presentation:** Jinja templates, HTMX, static assets
-- **Controller:** Flask blueprints (thin)
-- **Service:** Business logic, transaction management
-- **Data:** SQLAlchemy models, multi-DB
+Layer rules
+- blueprints → services → models/db; blueprints must not access db directly for business rules
+- services own transactions and are the only layer to write TimelineEvento (UX history)
+- utils provide shared helpers (e.g., sanitization, template filters)
 
-**Dependency Rules:**
-- Blueprints depend on services
-- Services depend on models and utils
-- Models are independent
-- No direct blueprint-to-model access
-
-**Abstraction Mechanisms:**
-- Service layer abstracts business logic
-- Utilities abstract cross-cutting concerns
-
----
+Dependency notes
+- Enums and models are imported locally inside functions when needed to avoid import cycles
+- No circular dependencies detected between services; cross-service calls are minimal (`financeiro_service` uses `timeline_service`)
 
 ## 6. Data Architecture
 
-- **Domain Model:** All entities in `models.py`, e.g., Paciente, PlanoTratamento, AchadoClinico
-- **Entity Relationships:** Managed in-model (no cross-DB foreign keys)
-- **Data Access:** Via SQLAlchemy ORM, session per service method
-- **Data Validation:** `utils.sanitizar_input()` for all free-text fields
-- **Snapshots:** Odontograma initial state stored as JSON in Paciente
-- **Caching:** Not implemented (offline-first, local DB)
+Domain modeling
+- Finance workflow
+  - Frozen prices: `ItemPlano.procedimento_nome_historico` and `valor_cobrado` are denormalized at creation
+  - Plan states: StatusPlanoEnum { PROPOSTO, APROVADO, CONCLUIDO, CANCELADO }. Services enforce editability only in PROPOSTO
+  - Saldo (dynamic): $saldo = valor\_total + \sum(ajustes) - \sum(pagamentos)$; negative saldo means credit
+  - Carnê cosmético: `ParcelaPrevista` has no persisted status; UI derives Paid/Partial/Pending from cumulative sums
+- Clinical workflow
+  - Live master: `OdontogramaDenteEstado` (unique per (paciente_id, tooth_id)) with JSONB state
+  - Snapshot: `Paciente.odontograma_inicial_json` and `odontograma_inicial_data` (admin-only overwrite)
+- Audit/legal
+  - `LogAuditoria` captures C/U/D with changes JSON and user_id
+  - `TimelineEvento` is a readable UX history populated by services
 
----
+Tenancy
+- Single Postgres database, schema-per-tenant model
+- `public` schema for governance (Tenant, GlobalSetting, DeveloperLog, Holiday)
+- Tenant schemas (e.g., `tenant_default`) for all clinical/finance data
+- App enforces tenant routing by setting `search_path` per request
+
+Migrations
+- Alembic configured for a Shadow DB (`SHADOW_DATABASE_URL`) to compute diffs accurately
+- Two-pass migration execution:
+  - Pass 1 (public): include only objects in `public`, `version_table_schema='public'`
+  - Pass 2 (tenants): discover active schemas via `public.tenants` (fallback to `tenant_default`); run with `version_table_schema=tenant_schema`
 
 ## 7. Cross-Cutting Concerns Implementation
 
-### Authentication & Authorization
-- User model, session-based auth
-- Soft-delete for offboarding
-- Permission checks in services
+Authentication & Authorization
+- Flask-Login for session auth; `Usuario.role` (RoleEnum) for roles
+- `admin_required` decorator protects admin-only actions (e.g., force snapshot)
 
-### Error Handling & Resilience
-- Try/commit/rollback in all service DB writes
-- Graceful error messages in UI
+Error Handling & Resilience
+- Global exception handler:
+  - Rolls back session, records exception via `log_service.record_exception`
+  - When `GlobalSetting('DEV_LOGS_ENABLED') == true`, returns an HTMX-friendly toast fragment with stack trace
+  - Otherwise returns `500.html`
+- Services catch and re-raise domain `ValueError` messages after rollback, keeping user-facing errors deterministic
 
-### Logging & Monitoring
-- Audit log in `history.db` (auto via SQLAlchemy events)
-- Timeline events for UX (written by services)
+Logging & Monitoring
+- Developer logs persisted in `public.developer_log` with request metadata and truncated bodies (4KB max)
+- APScheduler job purges logs older than N days (default 30)
 
-### Validation
-- Input sanitization in services
-- Business rule validation in service layer
+Validation
+- All free-text inputs sanitized via `utils.sanitization.sanitizar_input()` before persistence
+- Date parsing helpers normalize BR/ISO formats; enums enforce domain constraints
 
-### Configuration Management
-- `config.py` for environment settings
-- No secrets in code; use environment variables
-
----
+Configuration Management
+- `Config` loads from env: `DATABASE_URL`, `SECRET_KEY`, optional API tokens
+- WeasyPrint DLL path bootstrap for Windows via `WEASYPRINT_DLL_DIRECTORIES`
+- Asset version for cache busting exposed via context processor
 
 ## 8. Service Communication Patterns
 
-- **Internal:** Function calls between blueprints, services, and models
-- **External:** None (monolithic, no microservices)
-- **PDF Generation:** Service calls WeasyPrint (lazy import)
+Service boundaries
+- Single-process monolith; intra-service calls in-process
+- HTMX over HTTP for partial HTML updates; JSON endpoints limited to clinical state APIs
 
----
+Protocols and formats
+- HTML (Jinja) for main flows; JSON for odontogram state endpoints; PDF responses for printing
 
-## 9. Technology-Specific Architectural Patterns
+Resilience patterns
+- Atomic DB transactions per service call; non-blocking timeline writes guarded in try/except
 
-### Python/Flask
-- Modular app structure
-- Blueprints for routing
-- Service layer for business logic
-- SQLAlchemy ORM, multi-bind
-- Flask-Migrate for migrations
+## 9. Python-Specific Architectural Patterns
 
-### HTMX
-- Hypermedia-driven UI
-- Server-rendered HTML fragments
-- No client-side SPA framework
+- Module organization: single `models.py`; services as cohesive modules; blueprints grouped per domain
+- Dependency management: `requirements.txt` pinned to mainstream libs (Flask, SQLAlchemy, psycopg)
+- OOP vs functional: models are OOP; services are function-oriented modules; limited inheritance
+- Framework integration: Flask app factory pattern; Flask-Migrate/Alembic; context processors for global template helpers
+- Async: not used; synchronous request handling
 
-### WeasyPrint
-- PDF generation from Jinja templates
-- PDFs saved on disk at first generation
+## 10. Implementation Patterns (concrete)
 
----
+Interface design (lightweight)
+- Prefer simple function signatures per use case; keep parameters typed and validated; return domain objects or DTO dicts
 
-## 10. Implementation Patterns
+Service implementation
+- Contract
+  - Inputs: primitive/typed ids and sanitized strings/decimals
+  - Behavior: validate → build/update entities → commit → side-effects (timeline)
+  - Errors: raise `ValueError("...user-facing...")` after rollback
+  - Success: return created/updated entity or lightweight dict
+- Template
+```python
+def operation(...):
+    try:
+        # validate inputs (and sanitize strings)
+        # query/build domain objects
+        db.session.add(obj)
+        db.session.commit()
+        try:
+            timeline_service.create_timeline_evento(...)
+        except Exception:
+            pass
+        return obj
+    except Exception as exc:
+        db.session.rollback()
+        raise ValueError(f"Falha ...: {exc}")
+```
 
-### Interface Design
-- Service interfaces defined by function signatures
-- Utilities abstracted in `utils/`
+Repository/data access
+- Prefer `db.session.get(Model, pk)`; use `joinedload` where beneficial; avoid N+1 in list views
+- Use SQL functions (`func.sum`, `case`) for aggregate computations such as saldo
 
-### Service Implementation
-- One service per domain
-- All DB writes wrapped in transactions
-- Input sanitization before DB write
+Controller/API patterns
+- Thin controllers; reconstruct form payloads for services; return fragments suited for HTMX swaps; redirect/flash on full page flows
+- Lazy import heavy deps (WeasyPrint) inside route functions
 
-### Repository Pattern
-- Not used; ORM access via service methods
-
-### Controller/API Pattern
-- Blueprints route to service methods
-- HTMX endpoints return HTML fragments
-
-### Domain Model
-- Entities in `models.py`, with denormalized fields as needed
-
----
+Domain model patterns
+- Enums for state machines (plano, anamnese, agendamento, caixa)
+- JSONB for flexible clinical state per tooth
+- Denormalization for historical pricing in ItemPlano
 
 ## 11. Testing Architecture
 
-- **Unit Tests:** For services and utilities (`tests/`)
-- **Integration Tests:** For blueprints and end-to-end flows
-- **Test Data:** Seed scripts in `scripts/`
-- **Tools:** pytest
+Strategy
+- Unit tests for services (financeiro, odontograma, paciente)
+- Integration tests for blueprints and workflows; HTMX fragments asserted as HTML snippets
+- E2E tests (select flows) under `tests/e2e*`
 
----
+Boundaries and tools
+- Pytest + pytest-flask; app factory supports `testing` mode with env-driven DB overrides (`ECHO_TEST_DEFAULT_DB`, etc.)
+- Test data via `app/seeder.py` and focused builders in tests when needed
 
 ## 12. Deployment Architecture
 
-- **Topology:** Monolithic Flask app, local SQLite DBs
-- **Environments:** Configurable via `config.py` and env vars
-- **Migrations:** Alembic/Flask-Migrate
-- **Media:** Saved in `instance/media_storage/`
-- **PDFs:** Saved on disk, served statically
+Topology
+- Single Flask app process (can scale horizontally behind a WSGI server)
+- Single PostgreSQL database with multiple schemas (public + tenant_*)
 
----
+Environment and configuration
+- Required env: `DATABASE_URL`, `SECRET_KEY`
+- Migrations: generate with Shadow DB (`SHADOW_DATABASE_URL`); apply using two-pass strategy controlled by `ECHODENT_RUN_PHASE` (public/tenants/both)
+- Windows support: WeasyPrint DLLs via MSYS2 path injection at process start
 
-## 13. Extension and Evolution Patterns
+Media/PDF handling
+- Media stored on disk under `instance/media_storage/<paciente_id>/...`, DB stores relative paths only
+- PDFs generated on-demand (and per Diretrizes, should be saved on first issuance to freeze issuance date)
 
-### Feature Addition
-- Add new service and blueprint for new domain
-- Extend models in `models.py`
-- Add templates and static assets as needed
+## 13. Extension and Evolution Patterns (extensibility-focused)
 
-### Modification
-- Modify service methods for business rule changes
-- Use soft-delete for deprecation
+Feature addition patterns
+- New domain feature
+  - Add/extend models in `app/models.py` (respect tenant/public schemas)
+  - Create a service module with atomic operations and sanitization
+  - Expose routes via a new or existing blueprint; render Jinja/HTMX
+  - Add timeline events for UX history where helpful
 
-### Integration
-- Add adapters in services for external systems (future-proof)
+Modification patterns
+- Evolve enums conservatively; migrate data via Alembic where needed
+- Maintain backward-compatible template fragments (IDs/classes consumed by HTMX)
+- Preserve frozen pricing semantics for finance; prefer adjustments over edits post-approval
 
----
+Integration patterns
+- External APIs (e.g., CEP lookup): wrap calls in a dedicated service; keep responses cached/validated; avoid tight coupling to views
+- Anti-corruption: convert external payloads to internal DTOs and sanitize before persistence
 
 ## 14. Architectural Pattern Examples
 
-### Layer Separation Example
+Layer separation
 ```python
-# app/blueprints/paciente_bp.py
-@paciente_bp.route('/paciente/<int:id>')
-def view_paciente(id):
-    paciente = paciente_service.get_paciente(id)
-    return render_template('pacientes/view.html', paciente=paciente)
+# Blueprint → Service → Template
+@financeiro_bp.route("/plano/<int:plano_id>/editar", methods=["POST"])   
+def editar_plano(plano_id: int):
+    items_data = ...  # build from form
+    update_plano_proposto(plano_id=plano_id, items_data=items_data, usuario_id=current_user.id)
+    return render_template("financeiro/_plano_card.html", plano=get_plano_by_id(plano_id))
 ```
 
+Atomic service with rollback and timeline
 ```python
-# app/services/paciente_service.py
-def get_paciente(id):
-    paciente = db.session.query(Paciente).get(id)
-    return paciente
-```
-
-### Service Transaction Example
-```python
-def update_paciente(id, data):
+def add_lancamento(plano_id: int, valor: object, metodo_pagamento: str, usuario_id: int) -> LancamentoFinanceiro:
     try:
-        paciente = db.session.query(Paciente).get(id)
-        paciente.nome = sanitizar_input(data['nome'])
+        # validations...
+        lanc = LancamentoFinanceiro(...)
+        db.session.add(lanc)
         db.session.commit()
-    except Exception:
+        try:
+            timeline_service.create_timeline_evento(...)
+        except Exception:
+            pass
+        return lanc
+    except Exception as exc:
         db.session.rollback()
-        raise
+        raise ValueError(f"Falha ao registrar lançamento: {exc}")
 ```
 
-### Timeline Event Logging
+Tenant routing hook
 ```python
-# app/services/timeline_service.py
-def log_event(user_id, paciente_id, evento):
-    evento = TimelineEvento(user_id=user_id, paciente_id=paciente_id, evento=evento)
-    db.session.add(evento)
-    db.session.commit()
+@app.before_request
+def set_tenant_search_path():
+    tenant_schema = "tenant_default"
+    db.session.execute(text(f"SET LOCAL search_path TO {tenant_schema}, public"))
 ```
 
----
+Audit listeners (snippet)
+```python
+@event.listens_for(db.session, "before_flush")
+def track_changes(session, *_):
+    # collect updates/deletes diffs and queue creates for post-flush
+```
 
-## 15. Architectural Decision Records
+## 15. Architectural Decision Records (ADRs)
 
-### Architectural Style
-- **Decision:** Layered, monolithic, service-oriented
-- **Rationale:** Simplicity, maintainability, legal/UX requirements
-- **Alternatives:** Microservices (rejected for complexity)
+ADR-001: Schema-per-tenant in PostgreSQL
+- Context: Need for tenant isolation and per-tenant evolution with single DB ops model
+- Alternatives: Separate databases per tenant; table-per-tenant; row-level tenancy
+- Decision: Use schema-per-tenant with `search_path` switch and two-pass migrations
+- Consequences: Strong isolation via schema; simpler connection mgmt; requires custom Alembic env for two-pass upgrades
 
-### Technology Selection
-- **Flask:** Lightweight, flexible, Pythonic
-- **SQLAlchemy:** Multi-DB support, ORM
-- **HTMX:** Hypermedia, no SPA complexity
-- **WeasyPrint:** High-fidelity PDF, Jinja integration
+ADR-002: Hypermedia UI with HTMX
+- Context: Clinical workflows benefit from server-rendered simplicity and strong offline/local LAN operation
+- Alternatives: SPA (React/Angular); server-only full page reloads
+- Decision: Jinja-rendered fragments with HTMX swaps; keep JS light
+- Consequences: Faster iteration, less client-state complexity; patterns for fragment IDs/classes must remain stable
 
-### Implementation Approaches
-- **Service Layer:** All business logic, transaction management
-- **Audit Logging:** SQLAlchemy events, separate DB
-- **Soft-Delete:** Legal compliance, historical integrity
+ADR-003: Frozen pricing per item
+- Context: Legal/financial requirement to preserve pricing at time of approval
+- Alternatives: Join to live price table at render-time
+- Decision: Denormalize `procedimento_nome_historico` and `valor_cobrado` on create
+- Consequences: Historical correctness; requires edit constraints post-approval
 
----
+ADR-004: Timeline via double-write in services
+- Context: Need for readable, performant patient history without UNIONs
+- Decision: Write `TimelineEvento` alongside domain transaction
+- Consequences: Slight duplication; avoid as source of truth; ensure non-blocking writes
+
+ADR-005: Global error logging and optional dev toasts
+- Context: Improve DX and triage without exposing stack traces in prod
+- Decision: Persist exceptions to `public.developer_log`; gate dev toasts via `GlobalSetting('DEV_LOGS_ENABLED')`
+- Consequences: Centralized observability; configurable verbosity
 
 ## 16. Architecture Governance
 
-- **Consistency:** Enforced by AGENTS.MD rules
-- **Automated Checks:** Pre-commit hooks, pytest
-- **Review:** Manual code review, adherence to architecture doc
-- **Documentation:** AGENTS.MD, this blueprint
+Consistency maintenance
+- Rules enforced in services (atomicity, sanitization) and via tests
+- Migrations enforced through two-pass env; all models consolidated in `app/models.py`
 
----
+Automated checks
+- Pytest suite covers services and blueprints (see `tests/`)
+- Optional pre-commit hooks (see `pre-commit-config.yaml`) can be enabled locally
+
+Documentation practices
+- This blueprint and `AGENTS.MD` govern architecture; update ADRs upon significant changes
 
 ## 17. Blueprint for New Development
 
-### Workflow
-- Start with service and blueprint for new feature
-- Add/extend models in `models.py`
-- Create templates and static assets
-- Write tests in `tests/`
+Development workflow
+- Start in models if data changes are needed; run migration generation against Shadow DB
+- Implement service functions with sanitization and transactions
+- Add blueprint routes rendering Jinja/HTMX; keep controllers thin
+- Add tests: service unit tests + blueprint/integration where applicable
 
-### Templates
-- Service: `app/services/<feature>_service.py`
-- Blueprint: `app/blueprints/<feature>_bp.py`
-- Model: Add to `models.py`
-- Template: `templates/<feature>/`
+Implementation templates
+- Services: follow the atomic template above; place in `app/services/<feature>_service.py`
+- Blueprints: group by domain in `app/blueprints/`; use `@login_required` where necessary; lazy import heavy libs
+- Templates: scope CSS to container; avoid inline JS/CSS; HTMX buttons disable on flight
 
-### Pitfalls
-- Avoid direct DB access in blueprints
-- Do not bypass service layer
-- No cross-DB foreign keys
-- Always sanitize input
-- Use soft-delete, never hard-delete
+Common pitfalls
+- Editing approved plans: use AJUSTE entries instead
+- Forgetting to sanitize inputs before commit
+- Breaking tenant/public schema separation in models
+- Skipping rollback on exceptions in services
 
----
+—
 
-*This blueprint was generated on 2025-10-27. Update after major architectural or workflow changes.*
+Completion note
+This blueprint reflects the current PostgreSQL multi-tenant implementation and hypermedia architecture in the repository. Keep it updated alongside schema or workflow changes.

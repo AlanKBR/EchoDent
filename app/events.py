@@ -66,6 +66,9 @@ def track_changes(session, flush_context, instances):  # type: ignore[no-redef]
     For creates, we collect state in session.info to record after flush, so
     that auto-increment primary keys are available (model_id NOT NULL).
     """
+    # Allow seeders and maintenance tasks to disable auditing explicitly
+    if session.info.get("_audit_disabled"):
+        return
     # Avoid recursion when logs themselves trigger flush
     if session.info.get("_audit_in_progress"):
         return
@@ -143,6 +146,9 @@ def track_creates_after_flush(
     session, flush_context
 ):  # type: ignore[no-redef]
     """Persist create logs after PKs are assigned by the database."""
+    # Respect auditing disable flag
+    if session.info.get("_audit_disabled"):
+        return
     creates = session.info.pop("_audit_creates", [])
     if not creates:
         return

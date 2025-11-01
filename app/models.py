@@ -1,18 +1,16 @@
-
 from __future__ import annotations
 from . import db
 from enum import Enum
 from datetime import datetime, timezone
-
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 # ----------------------------------
-# Developer Log (logs bind)
+# Developer Log (public schema)
 # ----------------------------------
 class DeveloperLog(db.Model):
-    __bind_key__ = "logs"
     __tablename__ = "developer_log"
-    __table_args__ = {"info": {"bind_key": "logs"}}
+    __table_args__ = {"schema": "public"}
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(
         db.DateTime(timezone=True),
@@ -28,16 +26,34 @@ class DeveloperLog(db.Model):
 
 
 
-
 # ----------------------------------
 # Configuração Global (default bind)
 # ----------------------------------
 class GlobalSetting(db.Model):
     __tablename__ = "global_setting"
+    __table_args__ = {"schema": "public"}
     key = db.Column(db.String(100), primary_key=True)
     value = db.Column(db.Text, nullable=True)
 
 
+# ----------------------------------
+# Tenants (public schema)
+# ----------------------------------
+class Tenant(db.Model):
+    __tablename__ = "tenants"
+    __table_args__ = {"schema": "public"}
+
+    id = db.Column(db.Integer, primary_key=True)
+    schema_name = db.Column(
+        db.String(100), unique=True, nullable=False, index=True
+    )
+    display_name = db.Column(db.String(255), nullable=False)
+    is_active = db.Column(
+        db.Boolean, nullable=False, default=True, server_default=db.true()
+    )
+    created_at = db.Column(
+        db.DateTime(timezone=True), server_default=db.func.now()
+    )
 
 
 """Model definitions for EchoDent.
@@ -98,10 +114,8 @@ class CaixaStatus(str, Enum):
 
 
 class Usuario(db.Model):
-    __bind_key__ = "users"
     __tablename__ = "usuarios"
-    __table_args__ = {"info": {"bind_key": "users"}}
-
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -118,7 +132,7 @@ class Usuario(db.Model):
         db.Boolean,
         nullable=False,
         default=True,
-        server_default=db.text("1"),
+        server_default=db.true(),
     )
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -158,6 +172,7 @@ class Paciente(db.Model):
     )  # formato: 000.000.000-00
     telefone = db.Column(db.String(20), nullable=True)
     email = db.Column(db.String(120), nullable=True)
+    apelido = db.Column(db.String(100), nullable=True)
 
     # Endereço
     cep = db.Column(db.String(9), nullable=True)  # 00000-000
@@ -207,7 +222,7 @@ class Paciente(db.Model):
     )
 
     # Snapshot inicial e estados vivos do odontograma (Regra 3)
-    odontograma_inicial_json = db.Column(db.JSON, nullable=True)
+    odontograma_inicial_json = db.Column(JSONB, nullable=True)
     odontograma_inicial_data = db.Column(
         db.DateTime(timezone=True), nullable=True
     )
@@ -239,7 +254,7 @@ class Anamnese(db.Model):
         db.Boolean,
         nullable=False,
         default=False,
-        server_default=db.text("0"),
+        server_default=db.false(),
     )
     status = db.Column(
         db.Enum(AnamneseStatus, name="anamnese_status_enum"),
@@ -288,8 +303,13 @@ class PlanoTratamento(db.Model):
         db.Integer, db.ForeignKey("pacientes.id"), nullable=False
     )
 
-    # Referência ao dentista (users.db). Nao usar ForeignKey entre binds.
-    dentista_id = db.Column(db.Integer, nullable=True)
+    # Referência ao dentista (mesmo schema tenant)
+    dentista_id = db.Column(
+        db.Integer,
+        db.ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     status = db.Column(
         db.Enum(StatusPlanoEnum, name="status_plano_enum"),
@@ -392,7 +412,9 @@ class LancamentoFinanceiro(db.Model):
     # Motivo livre para ajustes (obrigatório no service quando AJUSTE)
     notas_motivo = db.Column(db.Text, nullable=True)
     data_lancamento = db.Column(
-        db.DateTime, nullable=False, server_default=db.func.now()
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=db.func.now(),
     )
 
     plano = db.relationship("PlanoTratamento", back_populates="lancamentos")
@@ -471,7 +493,7 @@ class OdontogramaDenteEstado(db.Model):
     # FDI tooth id (e.g., "11", "48")
     tooth_id = db.Column(db.String(3), nullable=False, index=True)
     # JSON de estado conforme frontend (three_utils.js)
-    estado_json = db.Column(db.JSON, nullable=False)
+    estado_json = db.Column(JSONB, nullable=False)
 
     paciente = db.relationship(
         "Paciente", back_populates="odontograma_estados"
@@ -490,9 +512,7 @@ class OdontogramaDenteEstado(db.Model):
 
 
 class LogAuditoria(db.Model):
-    __bind_key__ = "history"
     __tablename__ = "log_auditoria"
-    __table_args__ = {"info": {"bind_key": "history"}}
 
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(
@@ -500,14 +520,19 @@ class LogAuditoria(db.Model):
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
-    # Referência cruzada a usuarios.id (outro bind); não usar ForeignKey
-    user_id = db.Column(db.Integer, nullable=True)
+    # Referência ao usuário do mesmo schema tenant
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     action = db.Column(
         db.String(20), nullable=False
     )  # create | update | delete
     model_name = db.Column(db.String(200), nullable=False)
     model_id = db.Column(db.Integer, nullable=False)
-    changes_json = db.Column(db.Text, nullable=False)
+    changes_json = db.Column(JSONB, nullable=False)
 
     def __repr__(self) -> str:  # pragma: no cover
         return (
@@ -548,11 +573,16 @@ class Agendamento(db.Model):
     paciente_id = db.Column(
         db.Integer, db.ForeignKey("pacientes.id"), nullable=False
     )
-    # Referência ao dentista (users.db). Não usar ForeignKey entre binds.
-    dentista_id = db.Column(db.Integer, nullable=True)
+    # Referência ao dentista (mesmo schema tenant)
+    dentista_id = db.Column(
+        db.Integer,
+        db.ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
-    start_time = db.Column(db.DateTime, nullable=False)
-    end_time = db.Column(db.DateTime, nullable=False)
+    start_time = db.Column(db.DateTime(timezone=True), nullable=False)
+    end_time = db.Column(db.DateTime(timezone=True), nullable=False)
 
     status = db.Column(
         db.Enum(StatusAgendamentoEnum, name="status_agendamento_enum"),
@@ -599,8 +629,13 @@ class TimelineEvento(db.Model):
         index=True,
     )
 
-    # Referência lógica ao usuário (outro bind); não usar FK cross-bind
-    usuario_id = db.Column(db.Integer, nullable=True, index=True)
+    # Referência ao usuário do mesmo schema tenant
+    usuario_id = db.Column(
+        db.Integer,
+        db.ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Timestamp em UTC (timezone-aware)
     timestamp = db.Column(
@@ -646,9 +681,7 @@ class CalendarEvent(db.Model):
     - Campos de data/hora usam timezone=True e devem armazenar UTC.
     """
 
-    __bind_key__ = "calendario"
     __tablename__ = "calendar_events"
-    __table_args__ = {"info": {"bind_key": "calendario"}}
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -665,16 +698,25 @@ class CalendarEvent(db.Model):
     start = db.Column(db.DateTime(timezone=True), nullable=False)
     end = db.Column(db.DateTime(timezone=True), nullable=True)
     all_day = db.Column(
-        db.Boolean, nullable=False, default=False, server_default=db.text("0")
+        db.Boolean, nullable=False, default=False, server_default=db.false()
     )
 
     # Aparência e autoria
     color = db.Column(db.String(20), nullable=True)  # ex.: #0d6efd
-    # Referência lógica ao usuário (outro bind): users.usuarios.id
-    dentista_id = db.Column(db.Integer, nullable=True)
+    # Referências reais dentro do schema tenant
+    dentista_id = db.Column(
+        db.Integer,
+        db.ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
-    # Referência opcional ao paciente (sem FK cross-bind)
-    paciente_id = db.Column(db.Integer, nullable=True)
+    paciente_id = db.Column(
+        db.Integer,
+        db.ForeignKey("pacientes.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     created_at = db.Column(
         db.DateTime(timezone=True),
@@ -709,9 +751,8 @@ class Holiday(db.Model):
     - Não utiliza FKs cross-bind.
     """
 
-    __bind_key__ = "calendario"
     __tablename__ = "holiday"
-    __table_args__ = {"info": {"bind_key": "calendario"}}
+    __table_args__ = {"schema": "public"}
 
     # YYYY-MM-DD
     date = db.Column(db.String(20), primary_key=True)

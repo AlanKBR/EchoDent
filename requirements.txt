@@ -8,3 +8,4 @@ brasilapi
 pytest
 pytest-flask
 httpx
+psycopg[binary]
