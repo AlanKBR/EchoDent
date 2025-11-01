@@ -5,6 +5,8 @@ from sqlalchemy.exc import SQLAlchemyError
 # Whitelist de chaves de configuração permitidas
 WHITELIST_KEYS = {
     "DEV_LOGS_ENABLED",
+    # Permite forçar cache-busting de assets (ex.: agenda/app.js) via env/UI
+    "ASSET_VERSION",
 }
 
 

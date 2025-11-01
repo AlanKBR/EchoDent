@@ -2,16 +2,63 @@
 {% block title %}Configurações Globais{% endblock %}
 {% block content %}
 <h1>Configurações Globais</h1>
+
+{# Extrair valores atuais para chaves conhecidas #}
+{% set ns = namespace(dev_logs=None, asset_ver='') %}
+{% for key, value in settings %}
+  {% if key == 'DEV_LOGS_ENABLED' %}{% set ns.dev_logs = value %}{% endif %}
+  {% if key == 'ASSET_VERSION' %}{% set ns.asset_ver = value %}{% endif %}
+{% endfor %}
+
 <form id="settings-form" hx-post="/admin/configuracoes/update" hx-target="this" hx-swap="outerHTML">
-  <div class="settings-list">
-    {% for key, value in settings %}
-      <div class="mb-3">
-        <label for="setting-{{ key }}" class="form-label">{{ key }}</label>
-        <input type="text" class="form-control" id="setting-{{ key }}" name="{{ key }}" value="{{ value|e }}">
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header"><strong>Logs de Desenvolvedor</strong></div>
+        <div class="card-body">
+          <div class="form-check form-switch mb-2">
+            {# Tratar qualquer valor truthy como ligado #}
+            {% set enabled = (ns.dev_logs|string).lower().strip() in ['1','true','yes','on'] %}
+            <input class="form-check-input" type="checkbox" role="switch" id="DEV_LOGS_ENABLED" name="DEV_LOGS_ENABLED" value="true" {% if enabled %}checked{% endif %}>
+            <label class="form-check-label" for="DEV_LOGS_ENABLED">Ativar toasts de erro (DEV)</label>
+          </div>
+          <div class="form-text">Quando ativado, erros renderizam um toast com detalhes em vez da página 500. Útil em ambiente de desenvolvimento.</div>
+        </div>
       </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header"><strong>Assets</strong></div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="ASSET_VERSION" class="form-label">ASSET_VERSION</label>
+            <input type="text" class="form-control" id="ASSET_VERSION" name="ASSET_VERSION" value="{{ ns.asset_ver|e }}" placeholder="ex.: 2025-11-01">
+            <div class="form-text">Força cache-busting de arquivos estáticos (ex.: agenda/app.js). Deixe em branco para automático em DEV.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="my-4">
+
+  <h2 class="h5">Outras chaves</h2>
+  <div class="settings-list row g-3">
+    {% for key, value in settings %}
+      {% if key not in ['DEV_LOGS_ENABLED','ASSET_VERSION'] %}
+        <div class="col-12 col-md-6">
+          <label for="setting-{{ key }}" class="form-label small">{{ key }}</label>
+          <input type="text" class="form-control form-control-sm" id="setting-{{ key }}" name="{{ key }}" value="{{ value|e }}">
+        </div>
+      {% endif %}
     {% endfor %}
   </div>
-  <button type="submit" class="btn btn-primary">Salvar</button>
+
+  <div class="mt-4 d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{{ url_for('admin_bp.devlogs') }}" class="btn btn-outline-secondary">Ver Dev Logs</a>
+  </div>
 </form>
 {% endblock %}
 {% block scripts %}{% endblock %}
