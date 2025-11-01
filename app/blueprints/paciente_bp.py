@@ -20,10 +20,11 @@ from app.services.paciente_service import (
 )
 from app.services.financeiro_service import get_planos_by_paciente
 from app.services import paciente_service
-from flask import Response, send_from_directory, current_app
-from datetime import date
+from flask import send_from_directory, current_app
 import os
 from app.models import TimelineEvento  # noqa: F401 (kept for clarity)
+from app.models import Paciente as PacienteModel
+from app.utils.decorators import dentista_required
 
 
 paciente_bp = Blueprint("paciente_bp", __name__, url_prefix="/pacientes")
@@ -139,7 +140,9 @@ def tab_financeiro(paciente_id: int):  # pragma: no cover - thin controller
             if data_lanc:
                 data_dia = data_lanc.date()
                 if data_dia not in caixa_status_por_data:
-                    caixa_status_por_data[data_dia] = is_caixa_dia_aberto(data_dia)
+                    caixa_status_por_data[data_dia] = (
+                        is_caixa_dia_aberto(data_dia)
+                    )
                 caixa_aberto_lanc.append(caixa_status_por_data[data_dia])
             else:
                 caixa_aberto_lanc.append(True)
@@ -235,95 +238,46 @@ def get_media_file(media_id: int):  # pragma: no cover - thin controller
     return send_from_directory(media_dir, media.file_path, as_attachment=False)
 
 
-@paciente_bp.route(
-    "/<int:paciente_id>/imprimir/receita", methods=["GET", "POST"]
-)
+@paciente_bp.route("/buscar", methods=["GET"])
 @login_required
-def imprimir_receita(paciente_id: int):  # pragma: no cover - thin controller
-    # Importar tardiamente para evitar falhas de import se WeasyPrint não
-    # estiver totalmente configurado no ambiente (ex.: Windows sem MSYS2).
-    from app.services.print_service import generate_pdf
-    paciente = get_paciente_by_id(paciente_id)
-    if not paciente:
-        flash("Paciente não encontrado.")
-        return redirect(url_for("paciente_bp.lista"))
-
-    if request.method == "GET":
-        return render_template(
-            "print/form_receita.html",
-            paciente=paciente,
-            current_user=current_user,
-        )
-
-    # POST -> gerar PDF
-    texto = request.form.get("texto") or ""
-    profissional_nome = request.form.get("profissional_nome") or ""
-    cro_registro = request.form.get("cro_registro") or ""
-    conselho = (request.form.get("conselho") or cro_registro or "")
-    context = {
-        "paciente": paciente,
-        "data_emissao": date.today().strftime("%d/%m/%Y"),
-        "texto": texto,
-        "profissional_nome": profissional_nome,
-        "conselho": conselho,
-    }
-    pdf = generate_pdf(
-        "print/receita.html", context, base_url=request.url_root
-    )
-    return Response(
-        pdf,
-        mimetype="application/pdf",
-        headers={
-            "Content-Disposition": "inline; filename=receita.pdf"
-        },
+@dentista_required
+def buscar_pacientes():  # pragma: no cover - thin controller
+    """Autocomplete simples de pacientes por nome (ilike), limitado a 10."""
+    q = (request.args.get("q") or "").strip()
+    resultados = []
+    if q:
+        try:
+            like = f"%{q}%"
+            resultados = (
+                PacienteModel.query.filter(
+                    PacienteModel.nome_completo.ilike(like)
+                )
+                .order_by(PacienteModel.nome_completo)
+                .limit(10)
+                .all()
+            )
+        except Exception:
+            resultados = []
+    return render_template(
+        "documentos/_lista_pacientes_autocomplete.html",
+        pacientes=resultados,
     )
 
 
-@paciente_bp.route(
-    "/<int:paciente_id>/imprimir/atestado", methods=["GET", "POST"]
-)
-@login_required
-def imprimir_atestado(paciente_id: int):  # pragma: no cover - thin controller
-    # Importar tardiamente para evitar falhas de import se WeasyPrint não
-    # estiver totalmente configurado no ambiente (ex.: Windows sem MSYS2).
-    from app.services.print_service import generate_pdf
-    paciente = get_paciente_by_id(paciente_id)
-    if not paciente:
-        flash("Paciente não encontrado.")
-        return redirect(url_for("paciente_bp.lista"))
+# ROTAS DE IMPRESSÃO DESCONTINUADAS (WeasyPrint removido no Passo 1)
+# Mantidas comentadas intencionalmente até a migração para window.print.
+# Ver diretrizes na Seção 9 do AGENTS.MD e novo serviço de emissão.
+# @paciente_bp.route(
+#     "/<int:paciente_id>/imprimir/receita", methods=["GET", "POST"]
+# )
+# @login_required
+# def imprimir_receita(paciente_id: int):  # pragma: no cover - thin controller
+#     return "", 410  # Gone
 
-    if request.method == "GET":
-        return render_template(
-            "print/form_atestado.html",
-            paciente=paciente,
-            current_user=current_user,
-        )
 
-    # POST -> gerar PDF
-    dias = int(request.form.get("dias") or 1)
-    autorizou_cid = request.form.get("autorizou_cid") == "on"
-    cid = request.form.get("cid") or ""
-    observacoes = request.form.get("observacoes") or ""
-    profissional_nome = request.form.get("profissional_nome") or ""
-    cro_registro = request.form.get("cro_registro") or ""
-    conselho = (request.form.get("conselho") or cro_registro or "")
-    context = {
-        "paciente": paciente,
-        "data_emissao": date.today().strftime("%d/%m/%Y"),
-        "dias": dias,
-        "autorizou_cid": autorizou_cid,
-        "cid": cid,
-        "observacoes": observacoes,
-        "profissional_nome": profissional_nome,
-        "conselho": conselho,
-    }
-    pdf = generate_pdf(
-        "print/atestado.html", context, base_url=request.url_root
-    )
-    return Response(
-        pdf,
-        mimetype="application/pdf",
-        headers={
-            "Content-Disposition": "inline; filename=atestado.pdf"
-        },
-    )
+# @paciente_bp.route(
+#     "/<int:paciente_id>/imprimir/atestado", methods=["GET", "POST"]
+# )
+# @login_required
+# def imprimir_atestado(paciente_id: int):  # pragma: no cover
+#     return "", 410  # Gone

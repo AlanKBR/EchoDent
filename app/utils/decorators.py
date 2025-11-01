@@ -38,3 +38,24 @@ def admin_required(func: Callable[..., Any]) -> Callable[..., Any]:
             return redirect(url_for("paciente_bp.lista"))
         return func(*args, **kwargs)
     return wrapper
+
+
+def dentista_required(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator to restrict access to clinical staff (Dentist/Admin).
+
+    - Requires authenticated user.
+    - Allows RoleEnum.DENTISTA and RoleEnum.ADMIN.
+    - Otherwise aborts with 403 Forbidden.
+    """
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any):  # pragma: no cover - thin
+        try:
+            if not getattr(current_user, "is_authenticated", False):
+                abort(403)
+            role = getattr(current_user, "role", None)
+            if role not in (RoleEnum.DENTISTA, RoleEnum.ADMIN):
+                abort(403)
+        except Exception:
+            abort(403)
+        return func(*args, **kwargs)
+    return wrapper

@@ -19,6 +19,14 @@ def record_exception(
     Aderência Mandatória: Regra 7.5 (Atomicidade).
     """
     try:
+        # Garanta uma transação limpa antes de logar (defensivo)
+        # Em alguns cenários, mesmo após o handler global executar rollback,
+        # a sessão pode permanecer marcada como "failed". Este rollback extra
+        # evita o erro InFailedSqlTransaction ao inserir o DeveloperLog.
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         # Extrai dados do erro e da requisição
         tb_string = traceback.format_exc()
         error_type_str = type(error).__name__

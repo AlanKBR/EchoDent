@@ -17,7 +17,7 @@ Detected stacks and frameworks
 - Backend: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Login, APScheduler
 - ORM/DB: SQLAlchemy 2.x style via Flask-SQLAlchemy; PostgreSQL (psycopg[binary])
 - Frontend: Server-rendered Jinja templates with HTMX for partial updates; Three.js planned for 3D odontogram (Tela 2)
-- PDFs: WeasyPrint (lazy import in routes)
+- PDFs: HTML + @media print (client-side)
 - Testing: pytest, pytest-flask, httpx
 
 Detected architecture patterns
@@ -61,7 +61,7 @@ Enforcement mechanisms
 System context (C4 Level 1)
 - Users: Admin, Dentista, Secretaria
 - System: EchoDent (Flask app)
-- External services: Brazil API (CEP), OS filesystem (media storage), WeasyPrint runtime dependencies on Windows (MSYS2)
+- External services: Brazil API (CEP), OS filesystem (media storage)
 
 Container view (C4 Level 2)
 - Web App (Flask): Blueprints handle requests, render Jinja/HTMX
@@ -167,7 +167,6 @@ Validation
 
 Configuration Management
 - `Config` loads from env: `DATABASE_URL`, `SECRET_KEY`, optional API tokens
-- WeasyPrint DLL path bootstrap for Windows via `WEASYPRINT_DLL_DIRECTORIES`
 - Asset version for cache busting exposed via context processor
 
 ## 8. Service Communication Patterns
@@ -177,7 +176,7 @@ Service boundaries
 - HTMX over HTTP for partial HTML updates; JSON endpoints limited to clinical state APIs
 
 Protocols and formats
-- HTML (Jinja) for main flows; JSON for odontogram state endpoints; PDF responses for printing
+- HTML (Jinja) for main flows; JSON for odontogram state endpoints; HTML pages with @media print for printing (client-side)
 
 Resilience patterns
 - Atomic DB transactions per service call; non-blocking timeline writes guarded in try/except
@@ -225,7 +224,7 @@ Repository/data access
 
 Controller/API patterns
 - Thin controllers; reconstruct form payloads for services; return fragments suited for HTMX swaps; redirect/flash on full page flows
-- Lazy import heavy deps (WeasyPrint) inside route functions
+- Print flows render HTML pages with @media print (client-side); no server-side PDF engine
 
 Domain model patterns
 - Enums for state machines (plano, anamnese, agendamento, caixa)
@@ -252,11 +251,10 @@ Topology
 Environment and configuration
 - Required env: `DATABASE_URL`, `SECRET_KEY`
 - Migrations: generate with Shadow DB (`SHADOW_DATABASE_URL`); apply using two-pass strategy controlled by `ECHODENT_RUN_PHASE` (public/tenants/both)
-- Windows support: WeasyPrint DLLs via MSYS2 path injection at process start
 
-Media/PDF handling
+Media/Print handling
 - Media stored on disk under `instance/media_storage/<paciente_id>/...`, DB stores relative paths only
-- PDFs generated on-demand (and per Diretrizes, should be saved on first issuance to freeze issuance date)
+- Printing handled client-side via HTML + @media print; server renders dedicated print routes without persisting PDFs
 
 ## 13. Extension and Evolution Patterns (extensibility-focused)
 

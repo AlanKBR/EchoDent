@@ -1,0 +1,69 @@
+{# Formulário parcial injetado no #modal-documento via HTMX #}
+<div class="modal-card">
+  <div class="modal-header">
+    <h3>Gerar Documento: {{ tipo_doc }}</h3>
+  </div>
+  <div class="modal-body">
+    <form
+      hx-post="{{ url_for('documentos_bp.criar_log', tipo_doc=tipo_doc) }}"
+      hx-target="body"
+      hx-swap="innerHTML"
+      method="post"
+    >
+      <div class="form-group mb-2">
+        <label for="paciente_busca">Paciente</label>
+        {% if paciente %}
+          <input type="hidden" name="paciente_id" value="{{ paciente.id }}">
+          <input type="text" value="{{ paciente.nome_completo }}" disabled>
+        {% else %}
+          <input type="text"
+                 id="paciente_busca"
+                 name="q"
+                 placeholder="Buscar paciente..."
+                 hx-get="{{ url_for('paciente_bp.buscar_pacientes') }}"
+                 hx-trigger="keyup changed delay:300ms"
+                 hx-target="#autocomplete-results"
+                 autocomplete="off">
+          <input type="hidden" name="paciente_id" id="paciente_id_hidden" required>
+          <ul id="autocomplete-results" class="autocomplete-results" role="listbox"></ul>
+        {% endif %}
+      </div>
+
+      <div class="form-group mb-2">
+        <label for="template_id">Modelo</label>
+        <select name="template_id" id="template_id" required>
+          {% for t in templates %}
+            <option value="{{ t.id }}">{{ t.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {# Campos conveniência por tipo #}
+      {% if tipo_doc == 'ATESTADO' %}
+      <div class="form-group mb-2">
+        <label for="dias_repouso">Dias de repouso</label>
+        <input type="number" min="1" max="30" name="dias_repouso" id="dias_repouso" placeholder="Ex.: 5">
+      </div>
+      {% elif tipo_doc == 'RECEITA' %}
+      <div class="form-group mb-2">
+        <label for="nome_remedio">Medicamento</label>
+        <input type="text" name="nome_remedio" id="nome_remedio" placeholder="Ex.: Ibuprofeno 400mg">
+      </div>
+      <div class="form-group mb-2">
+        <label for="posologia_remedio">Posologia</label>
+        <textarea name="posologia_remedio" id="posologia_remedio" rows="3" placeholder="Ex.: Tomar 1 comprimido a cada 8 horas por 3 dias"></textarea>
+      </div>
+      {% endif %}
+
+      <div class="form-group mb-3">
+        <label for="dados_json">Dados (opcional, JSON ou linhas chave: valor)</label>
+        <textarea name="dados_json" id="dados_json" rows="4" placeholder="exemplo: valor\nou\nchave2: valor2"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Emitir</button>
+        <button type="button" class="btn btn-secondary" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>

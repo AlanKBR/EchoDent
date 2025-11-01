@@ -1,0 +1,41 @@
+/* CSS de impressão para documentos (A4 retrato) */
+
+@page {
+  size: A4 portrait;
+  margin: 1.5cm;
+}
+
+/* Ocultar elementos de UI gerais durante a impressão */
+@media print {
+  .sidebar,
+  .header-app,
+  .main-header,
+  .actions-bar,
+  .footer,
+  button,
+  .btn,
+  .htmx-indicator,
+  nav,
+  .flash-messages {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Container do documento para impressão limpa */
+  .documento-container {
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Utilitários de quebra de página */
+  .page-break-avoid { page-break-inside: avoid; }
+  .page-break-after { page-break-after: always; }
+}
+
+/* Visual padrão em tela (opcional) */
+.documento-container {
+  background: var(--surface, #fff);
+}

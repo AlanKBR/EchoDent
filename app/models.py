@@ -25,7 +25,6 @@ class DeveloperLog(db.Model):
     request_body = db.Column(db.Text, nullable=True)
 
 
-
 # ----------------------------------
 # Configuração Global (default bind)
 # ----------------------------------
@@ -106,6 +105,13 @@ class AnamneseStatus(str, Enum):
 class CaixaStatus(str, Enum):
     ABERTO = "ABERTO"
     FECHADO = "FECHADO"
+
+
+# Tipos de documentos imprimíveis (client-side)
+class TipoDocumento(str, Enum):
+    ATESTADO = "ATESTADO"
+    RECEITA = "RECEITA"
+    INSTRUCAO_PO = "INSTRUCAO_PO"
 
 
 # ----------------------------------
@@ -563,6 +569,74 @@ class MediaPaciente(db.Model):
         return (
             f"<MediaPaciente paciente_id={self.paciente_id} "
             f"path={self.file_path}>"
+        )
+
+
+# ----------------------------------
+# Emissão de Documentos (client-side print)
+# ----------------------------------
+
+
+class TemplateDocumento(db.Model):
+    __tablename__ = "template_documento"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(255), nullable=False)
+    tipo_doc = db.Column(
+        db.Enum(TipoDocumento, name="tipo_documento_enum"),
+        nullable=False,
+        index=True,
+    )
+    template_jinja = db.Column(db.Text, nullable=False)
+    is_active = db.Column(
+        db.Boolean, nullable=False, default=True, server_default=db.true()
+    )
+
+    # Relacionamento com logs de emissão
+    log_emissoes = db.relationship(
+        "LogEmissao",
+        back_populates="template",
+        cascade="all, delete-orphan",
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"<TemplateDocumento id={self.id} nome={self.nome!r} "
+            f"tipo={self.tipo_doc}>"
+        )
+
+
+class LogEmissao(db.Model):
+    __tablename__ = "log_emissao"
+
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(
+        db.Integer, db.ForeignKey("template_documento.id"), nullable=False
+    )
+    paciente_id = db.Column(
+        db.Integer, db.ForeignKey("pacientes.id"), nullable=False, index=True
+    )
+    usuario_id = db.Column(
+        db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True
+    )
+    dados_chave = db.Column(JSONB, nullable=False)
+    data_emissao = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=db.func.now(),
+    )
+
+    # Relacionamentos
+    template = db.relationship(
+        "TemplateDocumento", back_populates="log_emissoes"
+    )
+    paciente = db.relationship("Paciente")
+    usuario = db.relationship("Usuario")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"<LogEmissao id={self.id} template_id={self.template_id} "
+            f"paciente_id={self.paciente_id}>"
         )
 
 

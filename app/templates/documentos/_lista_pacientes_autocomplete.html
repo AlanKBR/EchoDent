@@ -1,0 +1,14 @@
+{# Fragmento HTMX: lista de pacientes para autocomplete #}
+{% if pacientes %}
+  {% for p in pacientes %}
+    <li class="autocomplete-item" role="option"
+        tabindex="0"
+        data-paciente-pick
+        data-id="{{ p.id }}"
+        data-name="{{ p.nome_completo }}">
+      {{ p.nome_completo }}
+    </li>
+  {% endfor %}
+{% else %}
+  <li class="autocomplete-empty" aria-disabled="true">Nenhum resultado</li>
+{% endif %}

@@ -3,7 +3,6 @@ flask-sqlalchemy
 flask-migrate
 flask-login
 python-dotenv
-weasyprint
 brasilapi
 pytest
 pytest-flask

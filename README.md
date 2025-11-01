@@ -1,6 +1,6 @@
 # EchoDent: Software de Gestão Odontológica Offline‑First com Flask e HTMX
 
-EchoDent é um sistema de gestão odontológica com foco em clínica local (rede interna), simplicidade operacional e robustez. O backend é Flask (renderizando HTML), a UI é baseada em hipermídia com HTMX, e PDFs são gerados via WeasyPrint.
+EchoDent é um sistema de gestão odontológica com foco em clínica local (rede interna), simplicidade operacional e robustez. O backend é Flask (renderizando HTML), a UI é baseada em hipermídia com HTMX, e a impressão/PDF é feita no cliente via HTML + @media print (window.print).
 
 ## Filosofia central e “peculiaridades” de arquitetura
 
@@ -21,7 +21,7 @@ EchoDent é um sistema de gestão odontológica com foco em clínica local (rede
 
 ## Instalação
 
-> Requisitos: Python 3.10+ (recomendado), `pip`. Para recursos de PDF no Windows, ver seção “WeasyPrint (Windows)”.
+> Requisitos: Python 3.10+ (recomendado), `pip`.
 
 1) Crie o ambiente virtual e instale dependências
 
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 - Copie `.env.example` para `.env` e ajuste:
   - `SECRET_KEY` (obrigatório)
   - `FLASK_APP=run.py` (já sugerido no example)
-  - (Windows) `WEASYPRINT_DLL_DIRECTORIES` se necessário (ver seção seguinte)
+  - Variáveis específicas do seu ambiente (DB, etc.)
 
 3) Migrações de banco de dados (cria tabelas nos 3 binds)
 
@@ -45,20 +45,9 @@ pip install -r requirements.txt
 flask db upgrade
 ```
 
-## WeasyPrint (Windows) — dependência crítica
+## Impressão (client-side)
 
-Para gerar PDFs no Windows, o WeasyPrint depende de bibliotecas nativas (MSYS2 + Pango/GTK/Cairo).
-
-- Instale MSYS2 e os pacotes de Pango/GTK seguindo a documentação oficial do WeasyPrint.
-- Se instalado em `C:\msys64\mingw64\bin`, o `run.py` já tenta configurar `WEASYPRINT_DLL_DIRECTORIES` automaticamente.
-- Alternativamente, defina manualmente no `.env`:
-
-```powershell
-# Exemplo no .env (Windows)
-WEASYPRINT_DLL_DIRECTORIES=C:\msys64\mingw64\bin
-```
-
-O projeto usa import “lazy” do WeasyPrint nas rotas. Se as DLLs não estiverem presentes, a rota falha de forma amigável sem derrubar o servidor.
+A emissão de documentos (receitas/atestados) é feita renderizando HTML com CSS `@media print`. A impressão/Geração de PDF é acionada pelo navegador (`window.print()`), sem dependências nativas no servidor.
 
 ## Executando a aplicação
 
@@ -121,18 +110,13 @@ pre-commit run --all-files
 
 - Evite FKs entre bancos (`users`/`history`/padrão); faça validações na camada de services.
 - O `PRAGMA journal_mode=WAL` já é aplicado por listeners a todos os engines.
-- Para PDFs, mantenha os assets locais (offline‑first): fontes/imagens referenciadas no template Jinja.
+- Para impressão, mantenha os assets locais (offline‑first): fontes/imagens referenciadas no template Jinja.
 
 ## Solução de Problemas (Troubleshooting)
 
-- WeasyPrint (Windows) não encontra DLLs (Pango/GTK/Cairo)
-  - Verifique se o MSYS2 está instalado e se o diretório `C:\msys64\mingw64\bin` existe.
-  - O `run.py` tenta configurar `WEASYPRINT_DLL_DIRECTORIES` automaticamente; se necessário, defina manualmente no `.env`.
-  - Reinicie o shell após alterar variáveis de ambiente.
-
-- Erro de import do WeasyPrint ou falha ao gerar PDF
-  - O app usa import “lazy” para não quebrar a inicialização. A rota de impressão deve reportar um erro amigável sem derrubar o servidor.
-  - Confirme que `weasyprint` está instalado: `pip install -r requirements.txt`.
+- Impressão sai sem estilos ou com layout incorreto
+  - Verifique se o CSS com `@media print` está sendo carregado na rota de impressão.
+  - Alguns navegadores exigem habilitar a opção “Imprimir plano de fundo (cores e imagens)”.
 
 - Conflitos de arquivo SQLite ou “database is locked”
   - Garanta que a pasta `instance/` exista e que os `.db` não estejam abertos em outro programa.

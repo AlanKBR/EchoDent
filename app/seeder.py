@@ -12,6 +12,8 @@ from app.models import (
     Tenant,
     RoleEnum,
     AnamneseStatus,
+    TemplateDocumento,
+    TipoDocumento,
 )
 
 
@@ -94,6 +96,45 @@ def seed_tenant_default() -> None:
         db.session.add(agendamento)
 
         db.session.commit()
+
+        # -----------------------------
+        # Templates de documento padrão
+        # -----------------------------
+        # Criar somente se não existirem registros desse tipo
+        existentes = db.session.query(TemplateDocumento).count()
+        if existentes == 0:
+            atestado = TemplateDocumento(
+                nome="Atestado Simples",
+                tipo_doc=TipoDocumento.ATESTADO,
+                template_jinja=(
+                    "Atesto que {{ paciente.nome_completo }} necessita de "
+                    "{{ dias_repouso }} dias de repouso por motivos clínicos."
+                ),
+                is_active=True,
+            )
+            receita = TemplateDocumento(
+                nome="Receita Simples",
+                tipo_doc=TipoDocumento.RECEITA,
+                template_jinja=(
+                    "Uso interno:\n"
+                    "1. {{ nome_remedio }}\n"
+                    "   {{ posologia_remedio }}"
+                ),
+                is_active=True,
+            )
+            db.session.add(atestado)
+            db.session.add(receita)
+            db.session.commit()
+            print(
+                "INFO: [seed_tenant_default] "
+                "Templates padrão de documentos criados."
+            )
+        else:
+            print(
+                "INFO: [seed_tenant_default] "
+                f"{existentes} template(s) de documentos já existem, "
+                "pulando criação."
+            )
         print("INFO: [seed_tenant_default] Semeadura concluída com sucesso.")
     except Exception as e:
         db.session.rollback()

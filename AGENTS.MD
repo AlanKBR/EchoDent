@@ -5,7 +5,7 @@ Este projeto, **EchoDental**, é um sucessor espiritual do OdontoClin. Suas aç�
 ## 1. Stack e Filosofia
 * **Backend:** Flask
 * **Frontend:** HTMX (Arquitetura de Hipermídia). O backend renderiza HTML.
-* **PDFs:** WeasyPrint (renderizando templates Jinja).
+* **PDFs:** HTML + @media print (client-side).
 * **3D:** Three.js (para o Odontograma Master).
 * **Filosofia:** Offline-first (rede local), robustez, simplicidade, workflow clínico-primeiro.
 
@@ -74,9 +74,9 @@ A interação com o paciente é centralizada em 5 abas/telas:
 
 ## 9. Regras Técnicas (PDF, Datas, Mídia)
 * **Timezone (Mandatório):** Todos os `DateTime` no DB DEVEM ser `timezone=True` (UTC).
-* **PDFs:** Usar **WeasyPrint** com *import lazy* (dentro da rota) para não quebrar o app.
+* **PDFs:** (Removido WeasyPrint) A geração de PDF/Impressão segue client-side via window.print conforme regra abaixo.
 * **Mídia (RX):** Salvar arquivos em `instance/media_storage/` com caminhos relativos. *Não* usar blobs. *Não* comprimir imagens de diagnóstico.
-* **PDF Salvo (Receitas/Atestados):** O `service` DEVE salvar o PDF gerado (`.pdf`) em disco no momento da *primeira* emissão e apenas servir esse arquivo estático em reimpressões (para "congelar" a data).
+* **PDFs e Impressão (window.print):** A geração de PDF é delegada 100% ao cliente (navegador). O servidor renderizará HTML puro (com um CSS `@media print` dedicado) em uma rota de impressão (ex: `/imprimir/log/<id>`). O `service` NÃO salva o PDF; a persistência é feita no `LogEmissao` (dados-chave JSON).
 
 ## 10. Regras de Frontend (CSS/JS)
 * **Proibido:** *NÃO* usar CSS/JS inline (atributos `style="..."` ou `<script>...</script>`).

@@ -140,6 +140,7 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
             pass
 
     # Registro de Blueprints (se existirem)
+    import logging
     bp_specs = [
         ("app.blueprints.auth_bp", "auth_bp"),
         ("app.blueprints.core_bp", "core_bp"),
@@ -149,6 +150,7 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
         ("app.blueprints.agenda_bp", "agenda_bp"),
         ("app.blueprints.odontograma_bp", "odontograma_bp"),
         ("app.blueprints.admin_bp", "admin_bp"),
+        ("app.blueprints.documentos_bp", "documentos_bp"),
     ]
     for module_name, attr_name in bp_specs:
         try:
@@ -156,9 +158,16 @@ def create_app(_config_name: Optional[str] = None) -> Flask:
             bp = getattr(mod, "bp", None) or getattr(mod, attr_name, None)
             if bp is not None:
                 app.register_blueprint(bp)
-        except Exception:
-            # Módulo ainda sem blueprint definido: ignora no scaffold
-            pass
+        except Exception as e:
+            # Logar erro de importação/registro para diagnóstico (não silencie)
+            try:
+                app.logger.error(
+                    "Falha ao registrar blueprint %s: %s", module_name, e
+                )
+            except Exception:
+                logging.exception(
+                    "Falha ao registrar blueprint %s", module_name
+                )
 
     # Rotas de desenvolvimento (somente em debug)
     if app.debug:

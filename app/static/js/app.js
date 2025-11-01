@@ -138,6 +138,64 @@
     }
   });
 
+  // Delegated click: close the document modal when clicking [data-close-modal]
+  doc.addEventListener('click', (e) => {
+    const closeBtn = e.target.closest('[data-close-modal]');
+    if (!closeBtn) return;
+    try {
+      const modalDoc = qs('#modal-documento');
+      if (modalDoc && modalDoc.contains(closeBtn)) {
+        e.preventDefault();
+        modalDoc.innerHTML = '';
+        modalDoc.classList.remove('active');
+      }
+    } catch (_) {
+      // fail silent
+    }
+  });
+
+  // Close the document modal on Escape key
+  doc.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    try {
+      const modalDoc = qs('#modal-documento');
+      if (modalDoc && modalDoc.innerHTML.trim() !== '') {
+        e.preventDefault();
+        modalDoc.innerHTML = '';
+        modalDoc.classList.remove('active');
+      }
+    } catch (_) {}
+  });
+
+  // Optional backdrop-like close: clicking on the container (outside modal card)
+  doc.addEventListener('click', (e) => {
+    try {
+      const modalDoc = qs('#modal-documento');
+      if (!modalDoc || modalDoc.innerHTML.trim() === '') return;
+      const clickedInsideModalDoc = e.target === modalDoc;
+      if (clickedInsideModalDoc) {
+        modalDoc.innerHTML = '';
+        modalDoc.classList.remove('active');
+      }
+    } catch (_) {}
+  });
+
+  // Autocomplete picker for patients: delegate clicks on results
+  doc.addEventListener('click', (e) => {
+    const pick = e.target.closest('[data-paciente-pick]');
+    if (!pick) return;
+    try {
+      const id = pick.getAttribute('data-id');
+      const name = pick.getAttribute('data-name');
+      const hidden = qs('#paciente_id_hidden');
+      const input = qs('#paciente_busca');
+      const results = qs('#autocomplete-results');
+      if (hidden) hidden.value = id || '';
+      if (input) input.value = name || '';
+      if (results) results.innerHTML = '';
+    } catch (_) {}
+  });
+
   // Delegated handler: remove closest .item-plano-row (replaces inline onclick)
   doc.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-remove-row]');

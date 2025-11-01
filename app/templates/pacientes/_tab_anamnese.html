@@ -35,10 +35,22 @@
   <div class="card-header">Ações</div>
   <div class="card-body">
     <div class="mb-3 flex flex-wrap gap-2">
-      <a href="{{ url_for('financeiro_bp.novo_plano_form', paciente_id=paciente.id) }}" class="btn btn-secondary">Novo Orçamento</a>
-      <a href="{{ url_for('financeiro_bp.recibo_avulso', paciente_id=paciente.id) }}" class="btn btn-secondary">Registrar Recibo Avulso</a>
-      <a href="{{ url_for('paciente_bp.imprimir_receita', paciente_id=paciente.id) }}" class="btn btn-secondary">Imprimir Receita</a>
-      <a href="{{ url_for('paciente_bp.imprimir_atestado', paciente_id=paciente.id) }}" class="btn btn-secondary">Imprimir Atestado</a>
+  <a href="{{ url_for('financeiro_bp.novo_plano_form', paciente_id=paciente.id) }}" class="btn btn-secondary">Novo Orçamento</a>
+  <a href="{{ url_for('financeiro_bp.recibo_avulso', paciente_id=paciente.id) }}" class="btn btn-secondary">Registrar Recibo Avulso</a>
+  <button type="button"
+      class="btn btn-secondary"
+      hx-get="{{ url_for('documentos_bp.gerador', tipo_doc='RECEITA', paciente_id=paciente.id) }}"
+      hx-target="#modal-documento"
+      hx-swap="innerHTML">
+    Emitir Receita
+  </button>
+  <button type="button"
+      class="btn btn-secondary"
+      hx-get="{{ url_for('documentos_bp.gerador', tipo_doc='ATESTADO', paciente_id=paciente.id) }}"
+      hx-target="#modal-documento"
+      hx-swap="innerHTML">
+    Emitir Atestado
+  </button>
       <a href="{{ url_for('paciente_bp.anamnese', paciente_id=paciente.id) }}" class="btn btn-secondary">Editar Anamnese</a>
 
       <div id="snapshot_controls" class="mt-2">
