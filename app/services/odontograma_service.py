@@ -152,6 +152,24 @@ def snapshot_odontograma_inicial(
         raise ValueError("Paciente não encontrado.")
 
     try:
+        # Se solicitar sobrescrita, apenas ADMIN pode fazê-lo (Regra 3)
+        if force_overwrite:
+            try:
+                from app.models import Usuario, RoleEnum  # local import
+                usr = db.session.get(Usuario, int(usuario_id))
+                role = getattr(usr, "role", None) if usr is not None else None
+                is_admin = bool(role == RoleEnum.ADMIN)
+                if not is_admin:
+                    raise ValueError(
+                        "Apenas ADMIN pode sobrescrever o snapshot inicial."
+                    )
+            except Exception as _exc:
+                # Normalizar em ValueError para contrato de domínio
+                if not isinstance(_exc, ValueError):
+                    raise ValueError(
+                        "Falha na verificação de permissão para sobrescrever."
+                    )
+                raise
         # Validação de não-sobrescrita
         if (
             getattr(paciente, "odontograma_inicial_json", None) is not None
