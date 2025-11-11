@@ -1,0 +1,22 @@
+/* Styles for generic toast-with-undo component extracted from inline template */
+.toast-with-undo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 400px;
+  position: relative;
+  overflow: hidden;
+}
+.toast-with-undo .toast-content { display: flex; align-items: center; gap: var(--space-2); }
+.toast-with-undo .toast-actions { display: flex; gap: var(--space-2); align-items: center; justify-content: flex-end; }
+.toast-with-undo .btn-outline-light {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+.toast-with-undo .btn-outline-light:hover { background: rgba(255, 255, 255, 0.1); }
+.toast-with-undo .toast-timer { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(255, 255, 255, 0.2); }
+.toast-with-undo .toast-timer-bar { height: 100%; background: rgba(255, 255, 255, 0.5); width: 100%; transform-origin: left; animation: timer-countdown 30s linear forwards; }
+@keyframes timer-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }

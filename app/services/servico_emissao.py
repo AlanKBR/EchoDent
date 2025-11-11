@@ -1,61 +1,159 @@
 from __future__ import annotations
 
-import jinja2
-from typing import Any, Mapping
+import re
+from collections.abc import Mapping
+from string import Template
+from typing import Any
 
 from .. import db
-from ..models import LogEmissao, Paciente, Usuario, TemplateDocumento
+from ..models import LogEmissao, Paciente, RoleEnum, TemplateDocumento, Usuario
 from ..utils.sanitization import sanitizar_input
 
-# Ambiente Jinja independente/tolerante para renderização a partir de strings
-# de template vindas do banco de dados (sem depender do loader de arquivos).
-motor_jinja_tolerante = jinja2.Environment(
-    # Undefined silently renders as empty string in standard Undefined
-    undefined=jinja2.Undefined,
-    loader=jinja2.BaseLoader(),
-)
+# ------------------------------
+# Parser de variáveis dinâmicas
+# ------------------------------
+
+GLOBAIS_SUPORTADAS: set[str] = {
+    # Paciente
+    "paciente_nome",
+    "paciente_cpf",
+    "paciente_email",
+    "paciente_telefone",
+    # Dentista responsável
+    "dentista_nome",
+    "dentista_cro",
+    # Emissão
+    "data_emissao",
+}
+
+
+def parse_campos_dinamicos(template_string: str) -> list[str]:
+    """Extrai variáveis $var do template, excluindo as globais conhecidas.
+
+    Retorna lista ordenada e única dos nomes (sem o prefixo '$').
+    """
+    if not template_string:
+        return []
+    # Captura $variavel (evita $$ de escape do Template)
+    vars_encontradas = set(
+        m.group("var")
+        for m in re.finditer(
+            r"\$(?P<var>[a-zA-Z_][a-zA-Z0-9_]*)",
+            template_string,
+        )
+    )
+    # Remove as globais suportadas
+    dinamicas = [v for v in vars_encontradas if v not in GLOBAIS_SUPORTADAS]
+    dinamicas.sort()
+    return dinamicas
+
+
+# ------------------------------
+# Renderização usando string.Template
+# ------------------------------
+
+
+def _construir_contexto_globais(log: LogEmissao) -> dict[str, Any]:
+    paciente = getattr(log, "paciente", None)
+    dentista = getattr(log, "dentista_responsavel", None)
+    data_emissao = getattr(log, "data_emissao", None)
+    ctx: dict[str, Any] = {}
+    try:
+        if paciente:
+            ctx["paciente_nome"] = paciente.nome_completo or ""
+            ctx["paciente_cpf"] = paciente.cpf or ""
+            ctx["paciente_email"] = paciente.email or ""
+            ctx["paciente_telefone"] = paciente.telefone or ""
+    except Exception:
+        pass
+    try:
+        if dentista:
+            ctx["dentista_nome"] = dentista.nome_completo or ""
+            ctx["dentista_cro"] = dentista.cro_registro or ""
+    except Exception:
+        pass
+    try:
+        if data_emissao is not None:
+            # ISO curto; formatação rica pode ser via filtro Jinja na
+            # print_page
+            ctx["data_emissao"] = str(data_emissao)
+    except Exception:
+        pass
+    return ctx
+
+
+# Conjunto de blocos condicionais suportados -> função(ctx) -> string
+def _blo_co_cid(ctx: Mapping[str, Any]) -> str:
+    cid = (ctx.get("cid_code") or ctx.get("cid") or "").strip()
+    if cid:
+        return f"<p><strong>CID:</strong> {cid}</p>"
+    return ""
+
+
+_BLOCOS_CONDICIONAIS: dict[str, callable] = {
+    "__BLOCO_CID__": _blo_co_cid,
+}
+
+
+def _aplicar_blocos_condicionais(
+    template_str: str, ctx: Mapping[str, Any]
+) -> str:
+    """Aplica substituições simples de blocos condicionais.
+
+    Cada marcador __BLOCO_X__ é substituído pelo resultado da função
+    correspondente; se não existir função, permanece como está (para lint).
+    """
+    for marcador, func in _BLOCOS_CONDICIONAIS.items():
+        try:
+            if marcador in template_str:
+                template_str = template_str.replace(marcador, str(func(ctx)))
+        except Exception:
+            # Fail-safe: remove marcador se função falhar
+            template_str = template_str.replace(marcador, "")
+    return template_str
 
 
 def renderizar_documento_html(log_emissao_id: int) -> str:
     """Renderiza HTML do documento (window.print) a partir de um LogEmissao.
 
     - Busca o LogEmissao e o TemplateDocumento associado
-        - Constrói o contexto mesclando dados do domínio com dados_chave
-            (dados_chave tem prioridade)
-    - Renderiza usando um Environment Jinja tolerante (SilentUndefined)
+    - Constrói o contexto flatten (Globais + dados_chave)
+    - Aplica blocos condicionais e substitui variáveis com string.Template
     """
     try:
         log = db.session.get(LogEmissao, log_emissao_id)
         if not log:
             raise ValueError("LogEmissao não encontrado")
 
-        template_string = (log.template.template_jinja or "").strip()
+        template_string = (
+            getattr(log.template, "template_body", "") or ""
+        ).strip()
         if not template_string:
             raise ValueError("Template do documento está vazio")
 
-        # Contexto padrão do domínio
-        contexto: dict[str, Any] = {
-            "paciente": log.paciente,
-            "usuario": log.usuario,
-            "log": log,
-        }
-        # Mescla dados_chave com prioridade
+        globais = _construir_contexto_globais(log)
+        dados_chave: Mapping[str, Any]
         try:
-            dados_chave: Mapping[str, Any] = (log.dados_chave or {})
-            contexto.update(dados_chave)
+            dados_chave = log.dados_chave or {}
         except Exception:
-            # Se dados_chave não for mapeável, ignora silenciosamente
+            dados_chave = {}
+
+        # Merge com prioridade para dinâmicos
+        contexto_final = dict(globais)
+        try:
+            contexto_final.update(dados_chave)
+        except Exception:
             pass
 
-        template = motor_jinja_tolerante.from_string(template_string)
-        html_renderizado = template.render(contexto)
+        # Aplica blocos condicionais antes da substituição de variáveis
+        pre = _aplicar_blocos_condicionais(template_string, contexto_final)
+
+        # Renderização segura (variáveis ausentes viram string vazia)
+        html_renderizado = Template(pre).safe_substitute(contexto_final)
         return html_renderizado
 
     except ValueError:
-        # Propaga erros de domínio controlados
         raise
-    except jinja2.TemplateSyntaxError as e:
-        raise ValueError(f"Erro de sintaxe no template: {e}")
     except Exception as e:
         raise ValueError(f"Falha ao renderizar documento: {e}")
 
@@ -65,13 +163,15 @@ def criar_log_emissao(
     usuario_id: int,
     template_id: int,
     dados_chave: dict | None,
+    dentista_responsavel_id: int,
 ) -> int:
     """Cria um LogEmissao de forma atômica e retorna seu ID (int).
 
     Regras aplicadas:
     - Atomicidade (try/commit/rollback) conforme Regra 7 do AGENTS.MD.
     - Sanitização de campos livres via utils.sanitizar_input em dados_chave.
-    - Validação de FKs (paciente/usuário/template devem existir).
+        - Validação de FKs (paciente/usuário/template/dentista) e de papel do
+            dentista.
     - Sem DDL em runtime: caso a tabela não exista, a exceção é propagada.
     """
     try:
@@ -88,6 +188,13 @@ def criar_log_emissao(
         if not template:
             raise ValueError("TemplateDocumento não encontrado")
 
+        dentista_resp = db.session.get(Usuario, dentista_responsavel_id)
+        if not dentista_resp:
+            raise ValueError("Dentista responsável não encontrado")
+        # Papel precisa ser DENTISTA
+        if getattr(dentista_resp, "role", None) != RoleEnum.DENTISTA:
+            raise ValueError("Usuário selecionado não é um dentista válido")
+
         # Sanitiza dados_chave (campos livres)
         dados_sanitizados: dict[str, Any] = {}
         if dados_chave:
@@ -98,12 +205,12 @@ def criar_log_emissao(
             template_id=template.id,
             paciente_id=paciente.id,
             usuario_id=usuario.id,
+            dentista_responsavel_id=dentista_resp.id,
             dados_chave=dados_sanitizados,
         )
         db.session.add(novo_log)
-        # Garante que ID foi gerado antes do commit e evita SELECT pós-commit
         db.session.flush()
-        new_id = int(getattr(novo_log, "id"))
+        new_id = int(novo_log.id)
         db.session.commit()
         return new_id
     except Exception:

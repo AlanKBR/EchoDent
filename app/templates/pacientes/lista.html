@@ -2,45 +2,40 @@
 
 {% block title %}Pacientes - Lista{% endblock %}
 
+{% block styles %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/paciente_lista.css') }}?v={{ asset_v }}"
+  />
+{% endblock %}
+
 {% block content %}
-  <div class="card">
-    <div class="card-header">Pacientes</div>
-    <div class="card-body">
-      <p class="mb-3">
-        <a href="{{ url_for('paciente_bp.novo') }}" class="btn btn-secondary">Novo Paciente</a>
-      </p>
-      <table class="table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Nome</th>
-        <th>Telefone</th>
-        <th>Email</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in pacientes %}
-      <tr>
-        <td>{{ p.id }}</td>
-        <td>
-          <a href="{{ url_for('paciente_bp.detalhe', paciente_id=p.id) }}">
-            {{ p.nome_completo }}
+  <div class="pacientes-container">
+    <div class="card">
+      <div class="card-header">
+        <span>Pacientes</span>
+        <button
+          class="btn btn-secondary btn-sm"
+          hx-get="{{ url_for('paciente_bp.modal_configurar_colunas') }}"
+          hx-target="#modal-container"
+          hx-swap="innerHTML"
+        >
+          ⚙️ Configurar Colunas
+        </button>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">
+          <a
+            href="{{ url_for('paciente_bp.novo') }}"
+            class="btn btn-secondary"
+          >
+            Novo Paciente
           </a>
-        </td>
-        <td>{{ p.telefone or '' }}</td>
-        <td>{{ p.email or '' }}</td>
-        <td>
-          <a href="{{ url_for('paciente_bp.editar', id=p.id) }}" class="btn btn-secondary">Editar</a>
-        </td>
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="5">Nenhum paciente cadastrado.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-      </table>
+        </p>
+        <div id="tabela-pacientes-container">
+          {% include 'pacientes/_tabela_fragment.html' %}
+        </div>
+      </div>
     </div>
   </div>
 {% endblock %}

@@ -3,6 +3,7 @@
 Rule 7: All free-text inputs must be sanitized before persisting to the DB.
 This module provides the foundational function used across services.
 """
+
 from typing import Any
 
 

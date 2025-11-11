@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Templates de Documentos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Templates de Documentos</h2>
+  <a class="btn btn-primary" href="{{ url_for('admin_templates_bp.novo') }}">Novo Template</a>
+</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Tipo</th>
+      <th>Ativo</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in templates %}
+      <tr>
+        <td>{{ t.nome }}</td>
+        <td>{{ t.tipo_doc.value }}</td>
+        <td>{{ 'Sim' if t.is_active else 'Não' }}</td>
+        <td>
+          <a class="btn btn-secondary" href="{{ url_for('admin_templates_bp.editar', tid=t.id) }}">Editar</a>
+          <button
+            class="btn btn-danger"
+            hx-delete="{{ url_for('admin_templates_bp.delete', tid=t.id) }}"
+            hx-target="closest tr"
+            hx-swap="outerHTML remove"
+            hx-confirm="Remover template?"
+          >Excluir</button>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

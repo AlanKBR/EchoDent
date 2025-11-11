@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
-from flask_login import login_required, current_user
+from flask_login import current_user, login_required
 
 from app.services import odontograma_service
 from app.utils.decorators import admin_required
-
 
 odontograma_bp = Blueprint("odontograma_bp", __name__)
 
@@ -49,13 +48,13 @@ def post_odontograma_snapshot(paciente_id: int):  # pragma: no cover - thin
         )
         # Return a small HTML fragment suitable for HTMX insertion
         return (
-            "<div class=\"alert alert-success\">Snapshot salvo.</div>",
+            '<div class="alert alert-success">Snapshot salvo.</div>',
             200,
             {"Content-Type": "text/html; charset=utf-8"},
         )
     except Exception as exc:
         return (
-            f"<div class=\"alert alert-danger\">{str(exc)}</div>",
+            f'<div class="alert alert-danger">{str(exc)}</div>',
             400,
             {"Content-Type": "text/html; charset=utf-8"},
         )
@@ -76,7 +75,7 @@ def post_odontograma_snapshot_force(
             force_overwrite=True,
         )
         html_ok = (
-            "<div class=\"alert alert-success\">"
+            '<div class="alert alert-success">'
             "Snapshot salvo (Sobrescrito)."
             "</div>"
         )
@@ -87,7 +86,7 @@ def post_odontograma_snapshot_force(
         )
     except Exception as exc:
         return (
-            f"<div class=\"alert alert-danger\">{str(exc)}</div>",
+            f'<div class="alert alert-danger">{str(exc)}</div>',
             400,
             {"Content-Type": "text/html; charset=utf-8"},
         )

@@ -47,9 +47,7 @@ def register_cli(app):
         try:
             # Use uma conexão dedicada para garantir o search_path correto
             with db.engine.begin() as conn:
-                conn.execute(text(
-                    "SET search_path TO tenant_default, public"
-                ))
+                conn.execute(text("SET search_path TO tenant_default, public"))
                 # Cria todas as tabelas conforme os models
                 db.metadata.create_all(bind=conn)
         except Exception as e:
@@ -62,10 +60,12 @@ def register_cli(app):
         try:
             MIG_VER = "1bbe8ad76a77"
             # public.alembic_version
-            db.session.execute(text(
-                "CREATE TABLE IF NOT EXISTS public.alembic_version ("
-                "version_num VARCHAR(32) NOT NULL)"
-            ))
+            db.session.execute(
+                text(
+                    "CREATE TABLE IF NOT EXISTS public.alembic_version ("
+                    "version_num VARCHAR(32) NOT NULL)"
+                )
+            )
             db.session.execute(text("DELETE FROM public.alembic_version"))
             db.session.execute(
                 text(
@@ -75,13 +75,16 @@ def register_cli(app):
                 {"v": MIG_VER},
             )
             # tenant_default.alembic_version
-            db.session.execute(text(
-                "CREATE TABLE IF NOT EXISTS tenant_default.alembic_version ("
-                "version_num VARCHAR(32) NOT NULL)"
-            ))
-            db.session.execute(text(
-                "DELETE FROM tenant_default.alembic_version"
-            ))
+            db.session.execute(
+                text(
+                    "CREATE TABLE IF NOT EXISTS "
+                    "tenant_default.alembic_version ("
+                    "version_num VARCHAR(32) NOT NULL)"
+                )
+            )
+            db.session.execute(
+                text("DELETE FROM tenant_default.alembic_version")
+            )
             db.session.execute(
                 text(
                     "INSERT INTO tenant_default.alembic_version (version_num) "

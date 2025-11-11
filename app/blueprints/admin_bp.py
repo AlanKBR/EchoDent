@@ -1,19 +1,19 @@
+from datetime import datetime
+from decimal import Decimal
+
 from flask import (
     Blueprint,
+    Response,
+    abort,
+    flash,
+    redirect,
     render_template,
     request,
-    redirect,
     url_for,
-    flash,
-    abort,
-    Response,
 )
-from flask_login import login_required, current_user
-from decimal import Decimal
-from datetime import datetime
-from app.services import financeiro_service
-from app.services import settings_service
-from app.services import log_service
+from flask_login import current_user, login_required
+
+from app.services import financeiro_service, log_service, settings_service
 from app.utils.decorators import admin_required
 
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/admin")
@@ -41,7 +41,7 @@ def fechar_caixa_submit():
         financeiro_service.fechar_caixa_dia(
             data_caixa=data_caixa,
             saldo_apurado=saldo_apurado,
-            usuario_id=current_user.id
+            usuario_id=current_user.id,
         )
         flash("Caixa fechado com sucesso!", "success")
         return redirect(url_for("admin_bp.fechar_caixa_form"))
@@ -75,7 +75,7 @@ def configuracoes_update():
 @login_required
 @admin_required
 def devlogs():
-    page = request.args.get('page', 1, type=int)
+    page = request.args.get("page", 1, type=int)
     per_page = 25
     pagination = log_service.get_logs_paginated(page=page, per_page=per_page)
     return render_template("admin/devlogs.html", pagination=pagination)
@@ -98,4 +98,4 @@ def view_log_detail(log_id):
 def purge_devlogs():
     log_service.purge_all_logs()
     # Resposta HTMX: redireciona para recarregar a página de logs
-    return ('', 204, {"HX-Redirect": "/admin/devlogs"})
+    return ("", 204, {"HX-Redirect": "/admin/devlogs"})

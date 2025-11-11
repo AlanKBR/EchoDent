@@ -1,31 +1,32 @@
 from __future__ import annotations
 
+import os
+
 from flask import (
     Blueprint,
+    current_app,
+    flash,
+    redirect,
     render_template,
     request,
-    redirect,
+    send_from_directory,
     url_for,
-    flash,
 )
-from flask_login import login_required, current_user
+from flask_login import current_user, login_required
 
-from app.services.paciente_service import (
-    get_all_pacientes,
-    create_paciente,
-    get_paciente_by_id,
-    update_paciente,
-    update_anamnese,
-    save_media_file,
-)
-from app.services.financeiro_service import get_planos_by_paciente
-from app.services import paciente_service
-from flask import send_from_directory, current_app
-import os
-from app.models import TimelineEvento  # noqa: F401 (kept for clarity)
 from app.models import Paciente as PacienteModel
-from app.utils.decorators import dentista_required
-
+from app.models import TimelineEvento  # noqa: F401 (kept for clarity)
+from app.services import user_preferences_service
+from app.services.paciente_service import (
+    create_paciente,
+    get_all_pacientes,
+    get_anamnese_status,
+    get_paciente_by_id,
+    save_media_file,
+    update_anamnese,
+    update_ficha_anamnese_atomic,
+    update_paciente,
+)
 
 paciente_bp = Blueprint("paciente_bp", __name__, url_prefix="/pacientes")
 
@@ -34,7 +35,14 @@ paciente_bp = Blueprint("paciente_bp", __name__, url_prefix="/pacientes")
 @login_required
 def lista():  # pragma: no cover - thin controller
     pacientes = get_all_pacientes()
-    return render_template("pacientes/lista.html", pacientes=pacientes)
+    colunas_visiveis = user_preferences_service.get_paciente_lista_colunas(
+        current_user.id
+    )
+    return render_template(
+        "pacientes/lista.html",
+        pacientes=pacientes,
+        colunas_visiveis=colunas_visiveis,
+    )
 
 
 @paciente_bp.route("/novo", methods=["GET", "POST"])
@@ -72,106 +80,115 @@ def editar(id: int):  # pragma: no cover - thin controller
 @paciente_bp.route("/<int:paciente_id>", methods=["GET"])
 @login_required
 def detalhe(paciente_id: int):  # pragma: no cover - thin controller
+    """DEPRECATED: Redireciona para nova arquitetura (Tela 1: Ficha)"""
+    return redirect(url_for("paciente_bp.ficha", paciente_id=paciente_id))
+
+
+@paciente_bp.route("/<int:paciente_id>/ficha", methods=["GET"])
+@login_required
+def ficha(paciente_id: int):
+    """Tela 1: Ficha + Anamnese (frontend Passo 2)."""
     paciente = get_paciente_by_id(paciente_id)
     if not paciente:
         flash("Paciente não encontrado.", "danger")
         return redirect(url_for("paciente_bp.lista"))
-    # Shell apenas: conteúdo das abas carregado via HTMX
+    status = get_anamnese_status(paciente)
     return render_template(
-        "pacientes/detalhe.html",
+        "pacientes/ficha/ficha_paciente.html",
         paciente=paciente,
-        current_user=current_user,
+        status=status,
     )
+
+
+@paciente_bp.route("/<int:paciente_id>/odontograma", methods=["GET"])
+@login_required
+def odontograma(paciente_id: int):
+    """Tela 2: Odontograma Master (3D) - Stub (Passo 2.5)."""
+    paciente = get_paciente_by_id(paciente_id)
+    if not paciente:
+        flash("Paciente não encontrado.", "danger")
+        return redirect(url_for("paciente_bp.lista"))
+    return render_template(
+        "pacientes/odontograma/odontograma_master.html",
+        paciente=paciente,
+    )
+
+
+@paciente_bp.route("/<int:paciente_id>/planejamento", methods=["GET"])
+@login_required
+def planejamento(paciente_id: int):
+    """Tela 3: Planejamento Financeiro (Orçamentos) - Stub (Passo 2.5)."""
+    paciente = get_paciente_by_id(paciente_id)
+    if not paciente:
+        flash("Paciente não encontrado.", "danger")
+        return redirect(url_for("paciente_bp.lista"))
+    return render_template(
+        "pacientes/planejamento/planejamento_financeiro.html",
+        paciente=paciente,
+    )
+
+
+@paciente_bp.route("/<int:paciente_id>/financeiro", methods=["GET"])
+@login_required
+def financeiro(paciente_id: int):
+    """Tela 4: Financeiro (Extrato) - Stub (Passo 2.5)."""
+    paciente = get_paciente_by_id(paciente_id)
+    if not paciente:
+        flash("Paciente não encontrado.", "danger")
+        return redirect(url_for("paciente_bp.lista"))
+    return render_template(
+        "pacientes/financeiro/financeiro_extrato.html",
+        paciente=paciente,
+    )
+
+
+@paciente_bp.route("/<int:paciente_id>/historico", methods=["GET"])
+@login_required
+def historico(paciente_id: int):
+    """Tela 5: Histórico (Timeline) - Stub (Passo 2.5)."""
+    paciente = get_paciente_by_id(paciente_id)
+    if not paciente:
+        flash("Paciente não encontrado.", "danger")
+        return redirect(url_for("paciente_bp.lista"))
+    return render_template(
+        "pacientes/historico/historico.html",
+        paciente=paciente,
+    )
+
+
+@paciente_bp.route("/<int:paciente_id>/atualizar", methods=["POST"])
+@login_required
+def atualizar_ficha(paciente_id: int):
+    """Salva ficha + anamnese de forma atômica (Regra §7.5)."""
+    try:
+        update_ficha_anamnese_atomic(
+            paciente_id=paciente_id,
+            form_data=request.form,
+            usuario_id=current_user.id,
+        )
+    except ValueError as e:
+        return str(e), 400
+    from flask import make_response
+
+    resp = make_response("", 204)
+    resp.headers["HX-Redirect"] = url_for(
+        "paciente_bp.ficha", paciente_id=paciente_id
+    )
+    return resp
 
 
 @paciente_bp.route(
     "/<int:paciente_id>/tab/anamnese", methods=["GET"]
-)  # Tela 1
+)  # Tela 1 - DEPRECATED (manter temporariamente para compatibilidade)
 @login_required
 def tab_anamnese(paciente_id: int):  # pragma: no cover - thin controller
-    paciente = get_paciente_by_id(paciente_id)
-    if not paciente:
-        return "", 404
-    anamnese_alert_tipo = paciente_service.check_anamnese_alert_status(
-        paciente
-    )
-    return render_template(
-        "pacientes/_tab_anamnese.html",
-        paciente=paciente,
-        current_user=current_user,
-        anamnese_alert_tipo=anamnese_alert_tipo,
-    )
+    """DEPRECATED: Redireciona para nova rota /ficha"""
+    return redirect(url_for("paciente_bp.ficha", paciente_id=paciente_id))
 
 
-@paciente_bp.route(
-    "/<int:paciente_id>/tab/planejamento", methods=["GET"]
-)  # Tela 3
-@login_required
-def tab_planejamento(paciente_id: int):  # pragma: no cover - thin controller
-    paciente = get_paciente_by_id(paciente_id)
-    if not paciente:
-        return "", 404
-    planos = get_planos_by_paciente(paciente_id)
-    return render_template(
-        "pacientes/_tab_planejamento.html",
-        paciente=paciente,
-        planos=planos,
-    )
-
-
-@paciente_bp.route(
-    "/<int:paciente_id>/tab/financeiro", methods=["GET"]
-)  # Tela 4
-@login_required
-def tab_financeiro(paciente_id: int):  # pragma: no cover - thin controller
-    paciente = get_paciente_by_id(paciente_id)
-    if not paciente:
-        return "", 404
-    planos = get_planos_by_paciente(paciente_id)
-    # Injetar info de caixa_aberto para cada plano (por data dos lançamentos)
-    from app.services.financeiro_service import is_caixa_dia_aberto
-    from collections import defaultdict
-    caixa_status_por_data = defaultdict(lambda: True)
-    for plano in planos:
-        # Para cada lançamento, verificar status do caixa do dia
-        caixa_aberto_lanc = []
-        for lanc in getattr(plano, 'lancamentos', []):
-            data_lanc = getattr(lanc, 'data_lancamento', None)
-            if data_lanc:
-                data_dia = data_lanc.date()
-                if data_dia not in caixa_status_por_data:
-                    caixa_status_por_data[data_dia] = (
-                        is_caixa_dia_aberto(data_dia)
-                    )
-                caixa_aberto_lanc.append(caixa_status_por_data[data_dia])
-            else:
-                caixa_aberto_lanc.append(True)
-        # Se algum lançamento do plano está com caixa aberto, permite estorno
-        setattr(plano, 'caixa_aberto_lancamentos', caixa_aberto_lanc)
-    return render_template(
-        "pacientes/_tab_financeiro.html",
-        paciente=paciente,
-        planos=planos,
-    )
-
-
-@paciente_bp.route(
-    "/<int:paciente_id>/tab/historico", methods=["GET"]
-)  # Tela 5
-@login_required
-def tab_historico(paciente_id: int):  # pragma: no cover - thin controller
-    paciente = get_paciente_by_id(paciente_id)
-    if not paciente:
-        return "", 404
-    try:
-        historico = paciente.timeline_eventos.limit(100).all()
-    except Exception:
-        historico = []
-    return render_template(
-        "pacientes/_tab_historico.html",
-        paciente=paciente,
-        historico=historico,
-    )
+# ROTAS ANTIGAS REMOVIDAS (Passo 2.5)
+# As rotas tab_planejamento, tab_financeiro e tab_historico foram substituídas
+# pelas novas rotas dedicadas: /planejamento, /financeiro, /historico
 
 
 @paciente_bp.route("/<int:paciente_id>/anamnese", methods=["GET", "POST"])
@@ -201,9 +218,11 @@ def anamnese(paciente_id: int):  # pragma: no cover - thin controller
 def anamnese_fragment():  # pragma: no cover - thin controller
     field = (request.args.get("field") or "none").lower()
     if field == "alergias":
-        return render_template("pacientes/_anamnese_alergias.html")
+        return render_template("pacientes/anamnese/_anamnese_alergias.html")
     if field == "medicamentos":
-        return render_template("pacientes/_anamnese_medicamentos.html")
+        return render_template(
+            "pacientes/anamnese/_anamnese_medicamentos.html"
+        )
     return "", 204
 
 
@@ -222,9 +241,7 @@ def upload_media(paciente_id: int):  # pragma: no cover - thin controller
         flash("Mídia salva com sucesso.", "success")
     except ValueError as e:
         flash(str(e), "danger")
-    return redirect(
-        url_for("paciente_bp.detalhe", paciente_id=paciente_id)
-    )
+    return redirect(url_for("paciente_bp.detalhe", paciente_id=paciente_id))
 
 
 @paciente_bp.route("/media/<int:media_id>", methods=["GET"])
@@ -240,7 +257,6 @@ def get_media_file(media_id: int):  # pragma: no cover - thin controller
 
 @paciente_bp.route("/buscar", methods=["GET"])
 @login_required
-@dentista_required
 def buscar_pacientes():  # pragma: no cover - thin controller
     """Autocomplete simples de pacientes por nome (ilike), limitado a 10."""
     q = (request.args.get("q") or "").strip()
@@ -262,6 +278,92 @@ def buscar_pacientes():  # pragma: no cover - thin controller
         "documentos/_lista_pacientes_autocomplete.html",
         pacientes=resultados,
     )
+
+
+@paciente_bp.route("/modal_configurar_colunas", methods=["GET"])
+@login_required
+def modal_configurar_colunas():  # pragma: no cover - thin controller
+    """Retorna o modal HTML com formulário de configuração de colunas."""
+    colunas_visiveis = user_preferences_service.get_paciente_lista_colunas(
+        current_user.id
+    )
+    return render_template(
+        "pacientes/modal_configurar_colunas.html",
+        colunas_visiveis=colunas_visiveis,
+    )
+
+
+@paciente_bp.route("/busca_global", methods=["GET"])
+@login_required
+def busca_global():  # pragma: no cover - thin controller
+    """Busca global de pacientes: recentes ou filtrados por nome."""
+    q = (request.args.get("q") or "").strip()
+    query = PacienteModel.query
+
+    # Modo Busca: filtrar por nome (ilike)
+    if q:
+        like_pattern = f"%{q}%"
+        query = query.filter(PacienteModel.nome_completo.ilike(like_pattern))
+
+    # Ordenação por denormalização (desc nullslast) e limite
+    from sqlalchemy import desc, nullslast
+
+    resultados = (
+        query.order_by(
+            nullslast(desc(PacienteModel.ultima_interacao_at)),
+            PacienteModel.nome_completo,
+        )
+        .limit(7)
+        .all()
+    )
+
+    return render_template(
+        "pacientes/_busca_global_dropdown.html",
+        resultados=resultados,
+        query=q,
+    )
+
+
+@paciente_bp.route("/configurar_colunas", methods=["POST"])
+@login_required
+def configurar_colunas():  # pragma: no cover - thin controller
+    """Salva preferências de colunas e retorna fragmento atualizado."""
+    # Reconstruir dicionário a partir dos checkboxes marcados
+    colunas_novas = {
+        "telefone": "telefone" in request.form,
+        "email": "email" in request.form,
+        "idade": "idade" in request.form,
+        "sexo": "sexo" in request.form,
+        "data_ultimo_registro": "data_ultimo_registro" in request.form,
+        "status_anamnese": "status_anamnese" in request.form,
+        "cpf": "cpf" in request.form,
+        "cidade": "cidade" in request.form,
+    }
+    success = user_preferences_service.update_paciente_lista_colunas(
+        current_user.id, colunas_novas
+    )
+    if not success:
+        flash("Erro ao salvar preferências.", "danger")
+        # Retornar fragmento vazio com erro para fechar modal sem reload
+        return "", 400
+
+    # Buscar pacientes e colunas atualizadas para re-renderizar tabela
+    pacientes = get_all_pacientes()
+    colunas_visiveis = user_preferences_service.get_paciente_lista_colunas(
+        current_user.id
+    )
+    # Header HX-Trigger para fechar modal (via evento customizado)
+    from flask import make_response
+
+    resp = make_response(
+        render_template(
+            "pacientes/_tabela_fragment.html",
+            pacientes=pacientes,
+            colunas_visiveis=colunas_visiveis,
+        )
+    )
+    resp.headers["HX-Trigger"] = "closeModal"
+    return resp
 
 
 # ROTAS DE IMPRESSÃO DESCONTINUADAS (WeasyPrint removido no Passo 1)

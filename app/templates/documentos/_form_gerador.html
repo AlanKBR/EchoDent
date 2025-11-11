@@ -1,13 +1,11 @@
-{# Formulário parcial injetado no #modal-documento via HTMX #}
-<div class="modal-card">
-  <div class="modal-header">
+{# Formulário parcial para o Painel de Documentos (v3.1) #}
+<div class="card">
+  <div class="card-header">
     <h3>Gerar Documento: {{ tipo_doc }}</h3>
   </div>
-  <div class="modal-body">
+  <div class="card-body">
     <form
       hx-post="{{ url_for('documentos_bp.criar_log', tipo_doc=tipo_doc) }}"
-      hx-target="body"
-      hx-swap="innerHTML"
       method="post"
     >
       <div class="form-group mb-2">
@@ -38,21 +36,29 @@
         </select>
       </div>
 
-      {# Campos conveniência por tipo #}
-      {% if tipo_doc == 'ATESTADO' %}
+      {# Campo de seleção de Dentista Responsável (roles) #}
+      {% if current_user.role == 'DENTISTA' %}
+        <input type="hidden" name="dentista_responsavel_id" value="{{ current_user.id }}">
+      {% else %}
       <div class="form-group mb-2">
-        <label for="dias_repouso">Dias de repouso</label>
-        <input type="number" min="1" max="30" name="dias_repouso" id="dias_repouso" placeholder="Ex.: 5">
+        <label for="dentista_responsavel_id">Dentista responsável</label>
+        <select name="dentista_responsavel_id" id="dentista_responsavel_id" required>
+          <option value="" disabled selected>Selecione...</option>
+          {% for d in dentistas %}
+            <option value="{{ d.id }}">{{ d.nome_completo }}</option>
+          {% endfor %}
+        </select>
       </div>
-      {% elif tipo_doc == 'RECEITA' %}
-      <div class="form-group mb-2">
-        <label for="nome_remedio">Medicamento</label>
-        <input type="text" name="nome_remedio" id="nome_remedio" placeholder="Ex.: Ibuprofeno 400mg">
-      </div>
-      <div class="form-group mb-2">
-        <label for="posologia_remedio">Posologia</label>
-        <textarea name="posologia_remedio" id="posologia_remedio" rows="3" placeholder="Ex.: Tomar 1 comprimido a cada 8 horas por 3 dias"></textarea>
-      </div>
+      {% endif %}
+
+      {# Campos dinâmicos detectados pelo parser #}
+      {% if campos_dinamicos %}
+        {% for campo in campos_dinamicos %}
+          <div class="form-group mb-2">
+            <label for="{{ campo }}">{{ campo.replace('_', ' ').capitalize() }}</label>
+            <input type="text" name="{{ campo }}" id="{{ campo }}" />
+          </div>
+        {% endfor %}
       {% endif %}
 
       <div class="form-group mb-3">
@@ -60,9 +66,9 @@
         <textarea name="dados_json" id="dados_json" rows="4" placeholder="exemplo: valor\nou\nchave2: valor2"></textarea>
       </div>
 
-      <div class="modal-actions">
+      <div class="form-actions">
         <button type="submit" class="btn btn-primary">Emitir</button>
-        <button type="button" class="btn btn-secondary" data-close-modal>Cancelar</button>
+        <a class="btn btn-secondary" href="{{ url_for('documentos_bp.hub_documentos') }}">Cancelar</a>
       </div>
     </form>
   </div>

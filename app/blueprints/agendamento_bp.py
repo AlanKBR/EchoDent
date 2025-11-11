@@ -6,7 +6,6 @@ from flask_login import login_required
 from app.models import StatusAgendamentoEnum
 from app.services import agendamento_service
 
-
 agendamento_bp = Blueprint("agendamento_bp", __name__)
 
 

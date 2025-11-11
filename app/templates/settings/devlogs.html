@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Dev Logs{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}?v={{ asset_v }}" />
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+  <div class="settings-content">
+    <div class="settings-header">
+      <h1>Logs de Desenvolvedor</h1>
+      <a href="{{ url_for('settings_bp.admin_panel') }}" class="btn btn-outline-secondary">← Voltar ao Admin</a>
+    </div>
+
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Logs de Erro</strong>
+        <form method="POST" action="{{ url_for('settings_bp.purge_devlogs') }}" style="display:inline;" onsubmit="return confirm('Confirma a exclusão de TODOS os logs?')">
+          <button type="submit" class="btn btn-sm btn-danger">Purgar Todos os Logs</button>
+        </form>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Data/Hora</th>
+                <th>Tipo de Erro</th>
+                <th>URL</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in pagination.items %}
+              <tr>
+                <td>{{ log.id }}</td>
+                <td>{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') if log.timestamp else '' }}</td>
+                <td><code class="small">{{ log.error_type }}</code></td>
+                <td><span class="small text-break">{{ log.request_url }}</span></td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('settings_bp.view_log_detail', log_id=log.id) }}">Ver Detalhes</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <nav aria-label="Paginação de logs" class="mt-3">
+          <ul class="pagination">
+            {% if pagination.has_prev %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ pagination.prev_num }}">Anterior</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">Página {{ pagination.page }} de {{ pagination.pages }}</span></li>
+            {% if pagination.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ pagination.next_num }}">Próximo</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">Próximo</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from flask import Blueprint, render_template, redirect, url_for
-from flask_login import login_required, current_user
+from flask import Blueprint, redirect, render_template, url_for
+from flask_login import current_user, login_required
 
 from app.models import RoleEnum, StatusAgendamentoEnum
 from app.services import agendamento_service
-
 
 core_bp = Blueprint("core_bp", __name__)
 

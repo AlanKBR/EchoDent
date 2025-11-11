@@ -1,0 +1,45 @@
+{#
+  Modal de Confirmação Destrutiva (EchoDent v4)
+
+  Uso via HTMX:
+    Servidor retorna este template com hx-swap-oob="true"
+
+  Parâmetros:
+    - titulo: Título do modal (ex: "Desativar Usuário?")
+    - mensagem: Texto explicativo (ex: "Usuário perderá acesso imediato...")
+    - acao_confirmacao: URL da ação destrutiva (hx-post)
+    - texto_botao: Texto do botão de confirmação (default: "Confirmar")
+#}
+{% set titulo = titulo | default('Confirmar Ação?') %}
+{% set mensagem = mensagem | default('Esta ação não pode ser desfeita.') %}
+{% set acao_confirmacao = acao_confirmacao | default('#') %}
+{% set texto_botao = texto_botao | default('Confirmar') %}
+
+<div class="modal-confirm-overlay" role="dialog" aria-labelledby="modal-confirm-title" aria-modal="true" data-modal-confirm>
+  <div class="modal-confirm-backdrop" data-modal-dismiss></div>
+  <div class="modal-confirm-content">
+    <h3 id="modal-confirm-title" class="modal-confirm-title">⚠️ {{ titulo }}</h3>
+
+    <div class="modal-confirm-body">
+      <p>{{ mensagem }}</p>
+
+      <label class="modal-confirm-checkbox">
+        <input type="checkbox" required data-confirm-checkbox>
+        <span>Entendo que esta ação não pode ser desfeita</span>
+      </label>
+    </div>
+
+    <div class="modal-confirm-actions">
+      <button type="button" class="btn btn-secondary" data-modal-dismiss>Cancelar</button>
+      <button
+        type="button"
+        class="btn btn-danger"
+        hx-post="{{ acao_confirmacao }}"
+        hx-swap="none"
+        disabled
+        data-confirm-btn>
+        {{ texto_botao }}
+      </button>
+    </div>
+  </div>
+</div>

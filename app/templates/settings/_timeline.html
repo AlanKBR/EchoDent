@@ -1,0 +1,160 @@
+{# Timeline de Alterações - Fase 4.4 #}
+{% set recent_changes = audit_service.get_settings_changes(limit=10) %}
+
+{% if recent_changes %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>📜 Alterações Recentes</strong>
+    <a href="{{ url_for('settings_bp.audit_logs') }}" class="btn btn-sm btn-outline-secondary">
+      Ver Todas
+    </a>
+  </div>
+  <div class="card-body p-0">
+    <div class="timeline">
+      {% for log in recent_changes %}
+      <div class="timeline-item">
+        <div class="timeline-marker">
+          {% if log.action == 'create' %}
+            <span class="timeline-icon timeline-icon-create">+</span>
+          {% elif log.action == 'update' or log.action == 'UPDATE_MASSA' %}
+            <span class="timeline-icon timeline-icon-update">✎</span>
+          {% elif log.action == 'delete' %}
+            <span class="timeline-icon timeline-icon-delete">−</span>
+          {% else %}
+            <span class="timeline-icon">●</span>
+          {% endif %}
+        </div>
+
+        <div class="timeline-content">
+          <div class="timeline-header">
+            <span class="timeline-time">
+              {{ log.timestamp.strftime('%d/%m/%Y %H:%M') }}
+            </span>
+
+            {% if log.action == 'create' %}
+              <span class="badge badge-sm badge-success">{{ audit_service.format_action_name(log.action) }}</span>
+            {% elif log.action == 'update' or log.action == 'UPDATE_MASSA' %}
+              <span class="badge badge-sm badge-primary">{{ audit_service.format_action_name(log.action) }}</span>
+            {% elif log.action == 'delete' %}
+              <span class="badge badge-sm badge-danger">{{ audit_service.format_action_name(log.action) }}</span>
+            {% else %}
+              <span class="badge badge-sm badge-secondary">{{ audit_service.format_action_name(log.action) }}</span>
+            {% endif %}
+          </div>
+
+          <div class="timeline-body">
+            <strong>{{ audit_service.format_model_name(log.model_name) }}</strong>
+            <span class="text-muted">(#{{ log.model_id }})</span>
+
+            {% if log.user %}
+              <span class="timeline-user">
+                por <strong>{{ log.user.nome_completo or log.user.username }}</strong>
+              </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+/* Timeline - Fase 4.4 */
+.timeline {
+  position: relative;
+  padding: var(--space-4);
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-4) + 12px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.timeline-item {
+  position: relative;
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-marker {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-surface-card);
+  border: 2px solid var(--color-border);
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--color-text-secondary);
+}
+
+.timeline-icon-create {
+  background: var(--color-success-bg, #d1fae5);
+  border-color: var(--color-success, #10b981);
+  color: var(--color-success, #10b981);
+}
+
+.timeline-icon-update {
+  background: var(--color-info-bg);
+  border-color: var(--color-primary-main);
+  color: var(--color-primary-main);
+}
+
+.timeline-icon-delete {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger, #ef4444);
+  color: var(--color-danger, #ef4444);
+}
+
+.timeline-content {
+  flex: 1;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  padding: var(--space-3);
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.timeline-time {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.timeline-body {
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+}
+
+.timeline-user {
+  display: inline-block;
+  margin-left: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+</style>

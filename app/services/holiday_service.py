@@ -3,16 +3,15 @@ from __future__ import annotations
 import os
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from flask import current_app
 
 from .. import db
 from ..models import Holiday
 
-
 _CACHE_TTL_SECONDS = 3600  # 1 hour
-_year_cache: Dict[int, Dict[str, Any]] = {}
+_year_cache: dict[int, dict[str, Any]] = {}
 
 
 def _now_ts() -> float:
@@ -42,7 +41,7 @@ def clear_invertexto_token() -> None:
         pass
 
 
-def get_invertexto_token() -> Optional[str]:
+def get_invertexto_token() -> str | None:
     # Prefer server config
     try:
         token = current_app.config.get("INVERTEXTO_API_TOKEN")
@@ -53,14 +52,14 @@ def get_invertexto_token() -> Optional[str]:
     # Fallback to instance file
     path = _instance_token_path()
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             t = f.read().strip()
             return t or None
     except FileNotFoundError:
         return None
 
 
-def _row_to_public(h: Holiday) -> Dict[str, Any]:
+def _row_to_public(h: Holiday) -> dict[str, Any]:
     return {
         "date": h.date,
         "name": h.name,
@@ -71,7 +70,7 @@ def _row_to_public(h: Holiday) -> Dict[str, Any]:
     }
 
 
-def get_holidays_by_year(year: int) -> List[Dict[str, Any]]:
+def get_holidays_by_year(year: int) -> list[dict[str, Any]]:
     # Use tiny in-memory cache per process for the year
     ent = _year_cache.get(year)
     if ent and (_now_ts() - ent.get("ts", 0)) < _CACHE_TTL_SECONDS:
@@ -88,7 +87,7 @@ def get_holidays_by_year(year: int) -> List[Dict[str, Any]]:
     return data
 
 
-def refresh_holidays(year: int, state: Optional[str] = None) -> Dict[str, Any]:
+def refresh_holidays(year: int, state: str | None = None) -> dict[str, Any]:
     token = get_invertexto_token()
     if not token:
         return {"status": "error", "message": "Token não configurado"}
@@ -116,20 +115,22 @@ def refresh_holidays(year: int, state: Optional[str] = None) -> Dict[str, Any]:
         return {"status": "error", "message": f"Falha na API: {e}"}
 
     # Normalize payload: expect list of {date, name, type, level}
-    items: List[Dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
     if isinstance(payload, list):
         for it in payload:
             try:
                 d = str(it.get("date")).strip()
                 nm = str(it.get("name") or "").strip() or "(sem nome)"
-                tp = (it.get("type") or None)
-                lv = (it.get("level") or None)
-                items.append({
-                    "date": d,
-                    "name": nm,
-                    "type": tp,
-                    "level": lv,
-                })
+                tp = it.get("type") or None
+                lv = it.get("level") or None
+                items.append(
+                    {
+                        "date": d,
+                        "name": nm,
+                        "type": tp,
+                        "level": lv,
+                    }
+                )
             except Exception:
                 continue
 
@@ -140,7 +141,7 @@ def refresh_holidays(year: int, state: Optional[str] = None) -> Dict[str, Any]:
     ).delete(synchronize_session=False)
 
     now_utc = datetime.now(timezone.utc)
-    to_add: List[Holiday] = []
+    to_add: list[Holiday] = []
     for it in items:
         h = Holiday()
         h.date = it["date"]

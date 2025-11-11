@@ -1,0 +1,32 @@
+{# Fragmento HTMX para preencher endereço via CEP (sem inline CSS/JS) #}
+{% set d = dados or {} %}
+<div class="endereco-fragment">
+  <div class="row">
+    <label for="cep">CEP</label>
+    <input type="text" id="cep" name="cep" value="{{ cep_input or '' }}" />
+  </div>
+  <div class="row">
+    <label for="logradouro">Logradouro</label>
+    <input type="text" id="logradouro" name="logradouro" value="{{ d.get('logradouro','') }}" />
+  </div>
+  <div class="row">
+    <label for="numero">Número</label>
+    <input type="text" id="numero" name="numero" value="" />
+  </div>
+  <div class="row">
+    <label for="complemento">Complemento</label>
+    <input type="text" id="complemento" name="complemento" value="" />
+  </div>
+  <div class="row">
+    <label for="bairro">Bairro</label>
+    <input type="text" id="bairro" name="bairro" value="{{ d.get('bairro','') }}" />
+  </div>
+  <div class="row">
+    <label for="cidade">Cidade</label>
+    <input type="text" id="cidade" name="cidade" value="{{ d.get('cidade','') }}" />
+  </div>
+  <div class="row">
+    <label for="estado">UF</label>
+    <input type="text" id="estado" name="estado" value="{{ d.get('estado','') }}" />
+  </div>
+</div>

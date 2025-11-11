@@ -1,0 +1,18 @@
+<div class="cards-grid">
+  {% for tipo in tipos_documento %}
+    <div class="card">
+      <div class="card-body">
+        <h4>{{ tipo.value }}</h4>
+        <p>Emita um {{ tipo.value | lower }} rapidamente.</p>
+        <button
+          class="btn btn-primary"
+          hx-get="{{ url_for('documentos_bp.form_documento', tipo_doc=tipo.value) }}"
+          hx-target="#painel-conteudo"
+          hx-swap="innerHTML"
+        >
+          Abrir
+        </button>
+      </div>
+    </div>
+  {% endfor %}
+</div>

@@ -1,0 +1,94 @@
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nome</th>
+      {% if colunas_visiveis.telefone %}<th>Telefone</th>{% endif %}
+      {% if colunas_visiveis.email %}<th>E-mail</th>{% endif %}
+      {% if colunas_visiveis.idade %}<th>Idade</th>{% endif %}
+      {% if colunas_visiveis.sexo %}<th>Sexo</th>{% endif %}
+      {% if colunas_visiveis.data_ultimo_registro %}
+        <th>Última Interação</th>
+      {% endif %}
+      {% if colunas_visiveis.status_anamnese %}<th>Anamnese</th>{% endif %}
+      {% if colunas_visiveis.cpf %}<th>CPF</th>{% endif %}
+      {% if colunas_visiveis.cidade %}<th>Cidade</th>{% endif %}
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in pacientes %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td>
+          <a href="{{ url_for('paciente_bp.detalhe', paciente_id=p.id) }}">
+            {{ p.nome_completo }}
+          </a>
+        </td>
+        {% if colunas_visiveis.telefone %}
+          <td>{{ p.telefone or '' }}</td>
+        {% endif %}
+        {% if colunas_visiveis.email %}
+          <td>{{ p.email or '' }}</td>
+        {% endif %}
+        {% if colunas_visiveis.idade %}
+          <td>{{ p.idade if p.idade else '-' }}</td>
+        {% endif %}
+        {% if colunas_visiveis.sexo %}
+          <td>
+            {% if p.sexo %}
+              {{ p.sexo.value }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        {% endif %}
+        {% if colunas_visiveis.data_ultimo_registro %}
+          <td>
+            {% if p.ultima_interacao_at %}
+              {{ p.ultima_interacao_at.strftime('%d/%m/%Y %H:%M') }}
+              {% if p.ultima_interacao_desc %}
+                <br /><small class="text-muted">
+                  {{ p.ultima_interacao_desc }}
+                </small>
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        {% endif %}
+        {% if colunas_visiveis.status_anamnese %}
+          <td>
+            {% if p.anamnese and p.anamnese.status %}
+              <span
+                class="badge badge-{{ 'success' if p.anamnese.status.value == 'CONCLUIDA' else 'warning' }}"
+              >
+                {{ p.anamnese.status.value }}
+              </span>
+            {% else %}
+              <span class="badge badge-secondary">PENDENTE</span>
+            {% endif %}
+          </td>
+        {% endif %}
+        {% if colunas_visiveis.cpf %}
+          <td>{{ p.cpf or '' }}</td>
+        {% endif %}
+        {% if colunas_visiveis.cidade %}
+          <td>{{ p.cidade or '' }}</td>
+        {% endif %}
+        <td>
+          <a
+            href="{{ url_for('paciente_bp.editar', id=p.id) }}"
+            class="btn btn-secondary"
+          >
+            Editar
+          </a>
+        </td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="20">Nenhum paciente cadastrado.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

@@ -7,9 +7,9 @@
       {% set idx = loop.index0 %}
       {% set caixa_aberto = plano.caixa_aberto_lancamentos[idx] %}
       {% if lancamento.lancamento_estornado_id == None and caixa_aberto and lancamento.tipo_lancamento != 'AJUSTE' %}
-        <form class="d-inline-flex gap-2 align-items-center" 
-              hx-post="/financeiro/lancamento/{{ lancamento.id }}/estornar" 
-              hx-target="closest li" 
+        <form class="d-inline-flex gap-2 align-items-center"
+              hx-post="/financeiro/lancamento/{{ lancamento.id }}/estornar"
+              hx-target="closest li"
               hx-swap="outerHTML">
           <input type="text" name="motivo_estorno" class="form-control form-control-sm" placeholder="Motivo do estorno" required style="max-width: 12rem;">
           <button type="submit" class="btn btn-sm btn-danger ms-2">Estornar</button>

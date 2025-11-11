@@ -1,0 +1,6 @@
+# djLint configuration for EchoDent
+profile = "jinja"
+# Ignore doctype-first for partials/fragments
+ignore = ["H006"]
+# Treat these as partials by convention
+respect-jinja-blocks = true

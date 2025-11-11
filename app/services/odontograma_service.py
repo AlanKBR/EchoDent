@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Any
 from datetime import datetime, timezone
+from typing import Any
 
 from app import db
 from app.models import OdontogramaDenteEstado, Paciente
@@ -12,9 +12,9 @@ from app.utils.sanitization import sanitizar_input
 def update_estado_dente(
     paciente_id: int,
     tooth_id: str,
-    novo_estado_json: Dict[str, Any],
+    novo_estado_json: dict[str, Any],
     usuario_id: int,
-) -> Optional[OdontogramaDenteEstado]:
+) -> OdontogramaDenteEstado | None:
     """Upsert do estado vivo de um dente no odontograma (Regra 7 - atômico).
 
     - Busca por (paciente_id, tooth_id). Atualiza se existir; cria se não.
@@ -64,7 +64,7 @@ def update_estado_dente(
         raise ValueError(f"Falha ao atualizar estado do dente: {exc}")
 
 
-def get_estado_odontograma_completo(paciente_id: int) -> Dict[str, Any]:
+def get_estado_odontograma_completo(paciente_id: int) -> dict[str, Any]:
     """Retorna o mapa de estado do odontograma para o paciente.
 
     Formato: { tooth_id: estado_json, ... }
@@ -78,7 +78,7 @@ def get_estado_odontograma_completo(paciente_id: int) -> Dict[str, Any]:
 
 
 def update_odontograma_bulk(
-    paciente_id: int, updates_map: Dict[str, Any], usuario_id: int
+    paciente_id: int, updates_map: dict[str, Any], usuario_id: int
 ) -> bool:
     """Aplica N updates de estado de dente em transação única (bulk).
 
@@ -155,7 +155,8 @@ def snapshot_odontograma_inicial(
         # Se solicitar sobrescrita, apenas ADMIN pode fazê-lo (Regra 3)
         if force_overwrite:
             try:
-                from app.models import Usuario, RoleEnum  # local import
+                from app.models import RoleEnum, Usuario  # local import
+
                 usr = db.session.get(Usuario, int(usuario_id))
                 role = getattr(usr, "role", None) if usr is not None else None
                 is_admin = bool(role == RoleEnum.ADMIN)

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Integrações{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}?v={{ asset_v }}" />
+{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="page-header">
+        <div class="page-header-content">
+            <h1 class="page-title">Integrações de API</h1>
+            <p class="page-subtitle">Configure tokens e teste conexões com serviços externos</p>
+        </div>
+    </div>
+
+    <!-- BrasilAPI (Feriados e CEP) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="card-header-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3h18v18H3zM8 8h8v8H8z"/>
+                </svg>
+                <div>
+                    <h3 class="mb-0">BrasilAPI</h3>
+                    <small class="text-muted">Feriados nacionais e consulta de CEP (público, sem autenticação)</small>
+                </div>
+            </div>
+            <div class="card-header-actions">
+                <span class="badge badge-success">Público</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="POST"
+                  action="{{ url_for('settings_bp.integrations_save', api_name='brasilapi') }}"
+                  hx-post="{{ url_for('settings_bp.integrations_save', api_name='brasilapi') }}"
+                  hx-target="this"
+                  hx-swap="outerHTML">
+                <div class="row">
+                    <div class="col-md-8">
+                        <label for="brasilapi-token" class="form-label">
+                            Token de API (opcional)
+                            <span class="text-muted">(BrasilAPI é público, mas permite token customizado)</span>
+                        </label>
+                        <input type="text"
+                               id="brasilapi-token"
+                               name="token"
+                               class="form-control"
+                               placeholder="Deixe em branco para usar endpoint público"
+                               value="{{ api_keys.get('API_BRASILAPI_TOKEN', '') }}">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>
+                            </svg>
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="mt-3">
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        hx-post="{{ url_for('settings_bp.integrations_test', api_name='brasilapi') }}"
+                        hx-target="#test-result-brasilapi"
+                        hx-swap="innerHTML">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>
+                    </svg>
+                    Testar Conexão
+                </button>
+                <div id="test-result-brasilapi" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gateway de Pagamento (Futuro/Placeholder) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="card-header-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><path d="M1 10h22"/>
+                </svg>
+                <div>
+                    <h3 class="mb-0">Gateway de Pagamento</h3>
+                    <small class="text-muted">Integração com processadora de pagamentos (futuro)</small>
+                </div>
+            </div>
+            <div class="card-header-actions">
+                <span class="badge badge-secondary">Em Breve</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="POST"
+                  action="{{ url_for('settings_bp.integrations_save', api_name='gateway_pagamento') }}"
+                  hx-post="{{ url_for('settings_bp.integrations_save', api_name='gateway_pagamento') }}"
+                  hx-target="this"
+                  hx-swap="outerHTML">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="gateway-token" class="form-label">Token de API</label>
+                        <input type="password"
+                               id="gateway-token"
+                               name="token"
+                               class="form-control"
+                               placeholder="••••••••••••••••"
+                               value="{{ api_keys.get('API_GATEWAY_PAGAMENTO_TOKEN', '') }}"
+                               disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="gateway-secret" class="form-label">Secret Key</label>
+                        <input type="password"
+                               id="gateway-secret"
+                               name="secret"
+                               class="form-control"
+                               placeholder="••••••••••••••••"
+                               value="{{ api_keys.get('API_GATEWAY_PAGAMENTO_SECRET', '') }}"
+                               disabled>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-secondary" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>
+                    </svg>
+                    Salvar (Indisponível)
+                </button>
+            </form>
+
+            <div class="alert alert-info mt-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+                </svg>
+                <p class="mb-0">Esta integração estará disponível em versões futuras.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentação/Help -->
+    <div class="card">
+        <div class="card-body">
+            <h4 class="mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>
+                </svg>
+                Ajuda sobre Integrações
+            </h4>
+            <ul class="mb-0">
+                <li><strong>BrasilAPI:</strong> Serviço gratuito para consulta de CEPs e feriados nacionais. Não requer autenticação.</li>
+                <li><strong>Gateway de Pagamento:</strong> Placeholder para integração futura com processadoras (Stripe, PagSeguro, etc.).</li>
+                <li><strong>Segurança:</strong> Tokens são armazenados em texto plano no banco de dados (schema public). Não compartilhe credenciais.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

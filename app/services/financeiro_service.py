@@ -1,29 +1,29 @@
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Iterable, Mapping, Optional, List
-from datetime import date
 import calendar
+from collections.abc import Iterable, Mapping
+from datetime import date
+from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy.sql import func
 from sqlalchemy import case
 from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import func
 
 from app import db
-from app.utils.sanitization import sanitizar_input
-from app.services import timeline_service
 from app.models import (
-    Usuario,
-    PlanoTratamento,
-    LancamentoFinanceiro,
-    ItemPlano,
-    StatusPlanoEnum,
-    Procedimento,
-    ParcelaPrevista,
-    FechamentoCaixa,
     CaixaStatus,
+    FechamentoCaixa,
+    ItemPlano,
+    LancamentoFinanceiro,
+    ParcelaPrevista,
+    PlanoTratamento,
+    Procedimento,
+    StatusPlanoEnum,
+    Usuario,
 )
- 
+from app.services import timeline_service
+from app.utils.sanitization import sanitizar_input
+
 # ----------------------------------
 # Helpers (Multi-bind validation)
 # ----------------------------------
@@ -42,7 +42,7 @@ def _to_decimal(value: object) -> Decimal:
         raise ValueError("Valor numérico inválido")
 
 
-def _validar_dentista_existe(dentista_id: Optional[int]) -> bool:
+def _validar_dentista_existe(dentista_id: int | None) -> bool:
     """Valida referencialmente se o dentista existe no bind 'users'."""
     if dentista_id is None:
         return False
@@ -57,7 +57,7 @@ def _validar_dentista_existe(dentista_id: Optional[int]) -> bool:
 
 def create_plano(
     paciente_id: int,
-    dentista_id: Optional[int],
+    dentista_id: int | None,
     itens_data: Iterable[Mapping[str, object]],
     usuario_id: int,
 ) -> PlanoTratamento:
@@ -89,14 +89,15 @@ def create_plano(
         except (TypeError, ValueError):
             raise ValueError("procedimento_id inválido.")
 
-    # Importante para testes: usar query.get para permitir monkeypatch em
-    # Procedimento.query.get. Em produção, Flask-SQLAlchemy 3.x recomenda
-    # session.get, mas aqui priorizamos testabilidade.
+        # Importante para testes: usar query.get para permitir monkeypatch em
+        # Procedimento.query.get. Em produção, Flask-SQLAlchemy 3.x recomenda
+        # session.get, mas aqui priorizamos testabilidade.
         procedimento = Procedimento.query.get(proc_id)
         if procedimento is None:
             # Fallback para testes/lançamento avulso: permitir criação quando
             # um valor explícito foi informado, congelando dados diretamente.
             if "valor_cobrado" in item and item["valor_cobrado"] is not None:
+
                 class _ProcShadow:
                     def __init__(self, _id: int, _nome: str, _valor: Decimal):
                         self.id = _id
@@ -109,9 +110,7 @@ def create_plano(
                     _to_decimal(item["valor_cobrado"]),
                 )
             else:
-                raise ValueError(
-                    f"Procedimento id={proc_id} não encontrado."
-                )
+                raise ValueError(f"Procedimento id={proc_id} não encontrado.")
 
         if "valor_cobrado" in item and item["valor_cobrado"] is not None:
             valor_cobrado = _to_decimal(item["valor_cobrado"])
@@ -250,7 +249,7 @@ def add_lancamento(
 
 
 def add_lancamento_ajuste(
-    plano_id: int, valor: object, notas_motivo: Optional[str], usuario_id: int
+    plano_id: int, valor: object, notas_motivo: str | None, usuario_id: int
 ) -> LancamentoFinanceiro:
     """Cria um lançamento de AJUSTE com motivo obrigatório (Regra 4).
 
@@ -273,7 +272,8 @@ def add_lancamento_ajuste(
     # Sanitizar/validar motivo
     motivo_clean = sanitizar_input(notas_motivo)
     motivo_txt = (
-        motivo_clean if isinstance(motivo_clean, str) and motivo_clean
+        motivo_clean
+        if isinstance(motivo_clean, str) and motivo_clean
         else None
     )
     if not motivo_txt:
@@ -309,9 +309,9 @@ def add_lancamento_ajuste(
 
 def create_recibo_avulso(
     paciente_id: int,
-    dentista_id: Optional[int],
+    dentista_id: int | None,
     valor: object,
-    motivo_descricao: Optional[str],
+    motivo_descricao: str | None,
     usuario_id: int,
 ) -> PlanoTratamento:
     """Cria um plano fantasma concluído e registra o pagamento avulso.
@@ -338,9 +338,7 @@ def create_recibo_avulso(
         lanc = LancamentoFinanceiro()
         lanc.valor = valor_dec
         lanc.metodo_pagamento = "AVULSO"
-        lanc.tipo_lancamento = (
-            LancamentoFinanceiro.LancamentoTipo.PAGAMENTO
-        )
+        lanc.tipo_lancamento = LancamentoFinanceiro.LancamentoTipo.PAGAMENTO
         lanc.notas_motivo = None
         # Associar via coleção relacional para evitar flush prévio
         # e manter tipagem
@@ -353,7 +351,8 @@ def create_recibo_avulso(
         try:
             motivo_clean = sanitizar_input(motivo_descricao)
             motivo_txt = (
-                motivo_clean if isinstance(motivo_clean, str) and motivo_clean
+                motivo_clean
+                if isinstance(motivo_clean, str) and motivo_clean
                 else None
             )
             desc = f"Recibo avulso de R$ {valor_dec} emitido."
@@ -430,7 +429,7 @@ def get_planos_by_paciente(paciente_id: int) -> list[PlanoTratamento]:
             saldo = calc.get("saldo_devedor")
         except Exception:
             saldo = None
-        setattr(plano, "saldo_devedor_calculado", saldo)
+        plano.saldo_devedor_calculado = saldo
 
         status_pagamento = None
         if plano.status == StatusPlanoEnum.APROVADO and saldo is not None:
@@ -445,7 +444,7 @@ def get_planos_by_paciente(paciente_id: int) -> list[PlanoTratamento]:
                     status_pagamento = "Parcial"
             except Exception:
                 status_pagamento = None
-        setattr(plano, "status_pagamento", status_pagamento)
+        plano.status_pagamento = status_pagamento
 
     return planos
 
@@ -460,7 +459,7 @@ def get_all_procedimentos() -> list[Procedimento]:
     )
 
 
-def get_procedimento_by_id(procedimento_id: int) -> Optional[Procedimento]:
+def get_procedimento_by_id(procedimento_id: int) -> Procedimento | None:
     return (
         db.session.query(Procedimento)
         .filter(
@@ -471,13 +470,14 @@ def get_procedimento_by_id(procedimento_id: int) -> Optional[Procedimento]:
     )
 
 
-def get_plano_by_id(plano_id: int) -> Optional[PlanoTratamento]:
+def get_plano_by_id(plano_id: int) -> PlanoTratamento | None:
     """Recupera um PlanoTratamento por ID com eager loading de relações."""
     return (
         db.session.query(PlanoTratamento)
         .options(
-            joinedload(PlanoTratamento.itens)  # type: ignore[arg-type]
-            .joinedload(ItemPlano.procedimento),  # type: ignore[arg-type]
+            joinedload(PlanoTratamento.itens).joinedload(
+                ItemPlano.procedimento
+            ),  # type: ignore[arg-type]  # type: ignore[arg-type]
             joinedload(PlanoTratamento.lancamentos),  # type: ignore[arg-type]
         )
         .filter(PlanoTratamento.id == int(plano_id))
@@ -642,7 +642,7 @@ def gerar_parcelamento_previsto(
         raise ValueError(f"Falha ao gerar carnê: {exc}")
 
 
-def get_carne_detalhado(plano_id: int) -> List[dict]:
+def get_carne_detalhado(plano_id: int) -> list[dict]:
     """
     Retorna o carnê detalhado com status dinâmico por parcela
     (Paga/Parcial/Pendente).
@@ -670,7 +670,7 @@ def get_carne_detalhado(plano_id: int) -> List[dict]:
         .order_by(ParcelaPrevista.data_vencimento.asc())
         .all()
     )
-    retorno: List[dict] = []
+    retorno: list[dict] = []
     previsto_cumul = Decimal("0")
     for parcela in parcelas:
         anterior = previsto_cumul
@@ -695,7 +695,7 @@ def get_carne_detalhado(plano_id: int) -> List[dict]:
 
 
 def update_plano_proposto(
-    plano_id: int, items_data: List[dict], usuario_id: int
+    plano_id: int, items_data: list[dict], usuario_id: int
 ) -> PlanoTratamento:
     """Edita campos congelados de um plano PROPOSTO de forma atômica.
 
@@ -713,7 +713,7 @@ def update_plano_proposto(
     try:
         # Atualizar itens
         total = Decimal("0")
-        for item in (items_data or []):
+        for item in items_data or []:
             it: ItemPlano | None = None
             # Preferir índice do formulário (mais estável na UI/HTMX)
             idx = item.get("idx")
@@ -774,7 +774,7 @@ def update_plano_proposto(
             it.valor_cobrado = valor_dec
             total += valor_dec
 
-    # Recalcular subtotal/valor_total mantendo desconto atual (PROPOSTO=0)
+        # Recalcular subtotal/valor_total mantendo desconto atual (PROPOSTO=0)
         plano.subtotal = total
         plano.valor_total = total
         db.session.add(plano)
@@ -798,6 +798,7 @@ def update_plano_proposto(
 # ----------------------------------
 # Trava de Caixa (Regra 7)
 # ----------------------------------
+
 
 def is_caixa_dia_aberto(data_caixa: date) -> bool:
     """Retorna True se o caixa do dia está ABERTO (ou não existe registro)."""
@@ -848,7 +849,7 @@ def fechar_caixa_dia(
 
 
 def add_lancamento_estorno(
-    lancamento_original_id: int, motivo_estorno: Optional[str], usuario_id: int
+    lancamento_original_id: int, motivo_estorno: str | None, usuario_id: int
 ) -> LancamentoFinanceiro:
     """Cria um estorno (AJUSTE negativo) de um lançamento, respeitando a trava.
 
@@ -876,9 +877,7 @@ def add_lancamento_estorno(
         est.valor = -_to_decimal(orig.valor)
         est.metodo_pagamento = "ESTORNO"
         est.tipo_lancamento = LancamentoFinanceiro.LancamentoTipo.AJUSTE
-        est.notas_motivo = (
-            f"Estorno (Ref ID: {orig.id}): {motivo}"
-        )
+        est.notas_motivo = f"Estorno (Ref ID: {orig.id}): {motivo}"
         est.lancamento_estornado_id = orig.id
         db.session.add(est)
         db.session.commit()

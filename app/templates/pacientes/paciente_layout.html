@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{# Template Pai - Esqueleto de Navegação das 5 Telas do Paciente #}
+{# Conformidade: AGENTS.MD §2 (URLs Dedicadas), §1 (HTMX Boost), §8.2 (Saída Suja) #}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/paciente_layout.css') }}?v={{ asset_v }}" />
+{% block page_styles %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="paciente-shell-container">
+  {# Barra de Navegação das 5 Telas - AGENTS.MD §2: URLs dedicadas com hx-boost #}
+  <nav class="paciente-nav-bar" hx-boost="true">
+    <a href="{{ url_for('paciente_bp.ficha', paciente_id=paciente.id) }}"
+       class="nav-tab {% if active_tab == 'ficha' %}active{% endif %}">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">Ficha + Anamnese</span>
+    </a>
+    <a href="{{ url_for('paciente_bp.odontograma', paciente_id=paciente.id) }}"
+       class="nav-tab {% if active_tab == 'odontograma' %}active{% endif %}">
+      <span class="tab-icon">🦷</span>
+      <span class="tab-label">Odontograma</span>
+    </a>
+    <a href="{{ url_for('paciente_bp.planejamento', paciente_id=paciente.id) }}"
+       class="nav-tab {% if active_tab == 'planejamento' %}active{% endif %}">
+      <span class="tab-icon">📊</span>
+      <span class="tab-label">Planejamento</span>
+    </a>
+    <a href="{{ url_for('paciente_bp.financeiro', paciente_id=paciente.id) }}"
+       class="nav-tab {% if active_tab == 'financeiro' %}active{% endif %}">
+      <span class="tab-icon">💰</span>
+      <span class="tab-label">Financeiro</span>
+    </a>
+    <a href="{{ url_for('paciente_bp.historico', paciente_id=paciente.id) }}"
+       class="nav-tab {% if active_tab == 'historico' %}active{% endif %}">
+      <span class="tab-icon">📜</span>
+      <span class="tab-label">Histórico</span>
+    </a>
+  </nav>
+
+  {# Conteúdo Dinâmico - Injetado pelas telas filhas (Ficha, Odontograma, etc.) #}
+  <div class="paciente-content-area">
+    {% block paciente_content %}
+    {# Este bloco será sobrescrito pelas telas filhas #}
+    {% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Documentos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Central de Documentos</h2>
+</div>
+
+<div id="painel-conteudo">
+  {% if inner_partial == 'documentos/_hub_cards.html' %}
+    {% include 'documentos/_hub_cards.html' %}
+  {% elif inner_partial == 'documentos/_form_gerador.html' %}
+    {% include 'documentos/_form_gerador.html' %}
+  {% else %}
+    {% include 'documentos/_hub_cards.html' %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum as PyEnum
-from typing import Any, Dict
+from typing import Any
 
 from flask_login import current_user
 from sqlalchemy import event
@@ -28,9 +28,9 @@ def _jsonify_value(value: Any) -> Any:
     return str(value)
 
 
-def _row_state_dict(obj: Any) -> Dict[str, Any]:
+def _row_state_dict(obj: Any) -> dict[str, Any]:
     mapper = sa_inspect(obj).mapper
-    data: Dict[str, Any] = {}
+    data: dict[str, Any] = {}
     for col in mapper.columns:
         try:
             data[col.key] = _jsonify_value(getattr(obj, col.key))
@@ -39,11 +39,11 @@ def _row_state_dict(obj: Any) -> Dict[str, Any]:
     return data
 
 
-def _row_diff(obj: Any) -> Dict[str, Dict[str, Any]]:
+def _row_diff(obj: Any) -> dict[str, dict[str, Any]]:
     """Return a dict of changed columns: {col: {"old": ..., "new": ...}}"""
     insp = sa_inspect(obj)
     mapper = insp.mapper
-    diff: Dict[str, Dict[str, Any]] = {}
+    diff: dict[str, dict[str, Any]] = {}
     for col in mapper.columns:
         attr = getattr(insp.attrs, col.key)
         hist = attr.history
@@ -89,7 +89,11 @@ def track_changes(session, flush_context, instances):  # type: ignore[no-redef]
     # Handle creations later (after flush) to capture the generated PKs.
     creates = []
     for obj in list(session.new):
+        # Skip audit logging for public schema models
         if isinstance(obj, LogAuditoria):
+            continue
+        # Skip DeveloperLog (public schema) to avoid tenant audit issues
+        if obj.__class__.__name__ == "DeveloperLog":
             continue
         # store the state now; ID may be None before flush
         state = _row_state_dict(obj)
@@ -100,6 +104,8 @@ def track_changes(session, flush_context, instances):  # type: ignore[no-redef]
     # Updates
     for obj in list(session.dirty):
         if isinstance(obj, LogAuditoria):
+            continue
+        if obj.__class__.__name__ == "DeveloperLog":
             continue
         diff = _row_diff(obj)
         if not diff:
@@ -119,6 +125,8 @@ def track_changes(session, flush_context, instances):  # type: ignore[no-redef]
     # Deletes
     for obj in list(session.deleted):
         if isinstance(obj, LogAuditoria):
+            continue
+        if obj.__class__.__name__ == "DeveloperLog":
             continue
         model_name = obj.__class__.__name__
         model_id = getattr(obj, "id", None)
@@ -142,9 +150,7 @@ def track_changes(session, flush_context, instances):  # type: ignore[no-redef]
 
 
 @event.listens_for(db.session, "after_flush_postexec")
-def track_creates_after_flush(
-    session, flush_context
-):  # type: ignore[no-redef]
+def track_creates_after_flush(session, flush_context):  # type: ignore[no-redef]
     """Persist create logs after PKs are assigned by the database."""
     # Respect auditing disable flag
     if session.info.get("_audit_disabled"):
@@ -156,6 +162,8 @@ def track_creates_after_flush(
     logs = []
     for obj, state in creates:
         if isinstance(obj, LogAuditoria):
+            continue
+        if obj.__class__.__name__ == "DeveloperLog":
             continue
         model_name = obj.__class__.__name__
         model_id = getattr(obj, "id", None)

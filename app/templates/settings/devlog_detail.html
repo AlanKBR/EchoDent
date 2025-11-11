@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Detalhe do Log{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}?v={{ asset_v }}" />
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+  <div class="settings-content">
+    <div class="settings-header">
+      <h1>Detalhe do Log #{{ log.id }}</h1>
+      <a href="{{ url_for('settings_bp.devlogs') }}" class="btn btn-outline-secondary">← Voltar aos Logs</a>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-3">ID</dt>
+          <dd class="col-sm-9">{{ log.id }}</dd>
+
+          <dt class="col-sm-3">Data/Hora</dt>
+          <dd class="col-sm-9">{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') if log.timestamp else '-' }}</dd>
+
+          <dt class="col-sm-3">Tipo de Erro</dt>
+          <dd class="col-sm-9"><code>{{ log.error_type }}</code></dd>
+
+          <dt class="col-sm-3">URL</dt>
+          <dd class="col-sm-9">{{ log.request_url or '-' }}</dd>
+
+          <dt class="col-sm-3">Método</dt>
+          <dd class="col-sm-9">{{ log.request_method or '-' }}</dd>
+
+          <dt class="col-sm-3">User ID</dt>
+          <dd class="col-sm-9">{{ log.user_id or '-' }}</dd>
+
+          <dt class="col-sm-3">Request Body</dt>
+          <dd class="col-sm-9">
+            <pre class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">{{ log.request_body or '(vazio)' }}</pre>
+          </dd>
+
+          <dt class="col-sm-3">Traceback</dt>
+          <dd class="col-sm-9">
+            <pre class="bg-dark text-light p-3 rounded" style="max-height: 500px; overflow-y: auto;">{{ log.traceback }}</pre>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

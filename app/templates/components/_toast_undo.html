@@ -1,0 +1,26 @@
+<!-- htmlhint doctype-first:false -->
+{# Toast com botão de Undo (30s timeout) - Fase 4.2 #}
+<div class="toast toast-success toast-with-undo" role="alert" aria-live="polite" data-timeout="30000">
+  <div class="toast-content">
+    <span class="toast-icon">✅</span>
+    <span class="toast-message">{{ message }}</span>
+  </div>
+
+  <div class="toast-actions">
+    <button type="button"
+      class="btn btn-sm btn-outline-light js-dismiss-on-click"
+      hx-post="{{ undo_url }}"
+      hx-swap="none">
+      <span class="btn-text">Desfazer</span>
+      <span class="htmx-indicator">{% include 'utils/_spinner.html' %}</span>
+    </button>
+
+  <button type="button" class="toast-close js-dismiss-toast" aria-label="Fechar">×</button>
+  </div>
+
+  <div class="toast-timer">
+    <div class="toast-timer-bar" style="animation: timer-countdown 30s linear forwards;"></div>
+  </div>
+</div>
+
+{# estilos e scripts movidos para assets: css/toast_with_undo.css e js/toast_with_undo.js #}

@@ -1,20 +1,20 @@
-<!-- Menu de Busca -->
+<!-- Menu de Busca (EchoDent Design) -->
 <div id="searchMenu" class="ed-popover hidden">
   <div class="ed-popover-header">Buscar eventos</div>
   <div class="ed-popover-body">
-    <div class="mb-2 small text-muted">Pesquise por nome, detalhes ou cor (ex.: vermelho, azul, verde...)</div>
-    <div class="mb-2">
-      <input id="searchQueryInput" type="text" class="form-control" placeholder="Digite e pressione Enter ou clique em Buscar">
-      <div class="mt-2 d-flex gap-2">
-        <button id="btnApplySearch" class="btn btn-primary">Buscar</button>
-        <button id="btnClearSearch" class="btn btn-secondary">Limpar</button>
+    <div style="margin-bottom: var(--space-3); font-size: 0.875rem; color: var(--color-text-secondary);">Pesquise por nome, detalhes ou cor (ex.: vermelho, azul, verde...)</div>
+    <div style="margin-bottom: var(--space-3);">
+      <input id="searchQueryInput" type="text" placeholder="Digite e pressione Enter ou clique em Buscar" style="width: 100%; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: calc(var(--border-radius-medium) - 2px); background: var(--color-background); color: var(--color-text-primary); font-family: var(--font-family-system); font-size: 0.875rem; margin-bottom: var(--space-2);">
+      <div style="display: flex; gap: var(--space-2);">
+        <button id="btnApplySearch" class="btn-ed btn-ed-primary btn-ed-sm" style="flex: 1;">Buscar</button>
+        <button id="btnClearSearch" class="btn-ed btn-ed-secondary btn-ed-sm" style="flex: 1;">Limpar</button>
       </div>
     </div>
-    <div class="small text-muted mb-1">Cores aceitas: vermelho, rosa, laranja, amarelo, verde, verde-agua, azul, azul-claro, roxo, roxo-escuro, rosa-claro, cinza</div>
-    <div id="searchResultsSummary" class="small"></div>
+    <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: var(--space-2);">Cores aceitas: vermelho, rosa, laranja, amarelo, verde, verde-agua, azul, azul-claro, roxo, roxo-escuro, rosa-claro, cinza</div>
+    <div id="searchResultsSummary" style="font-size: 0.875rem; color: var(--color-text-secondary);"></div>
   </div>
   <style>
     #searchMenu { min-width: 320px; }
   </style>
-  
+
 </div>

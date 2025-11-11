@@ -3,11 +3,11 @@ from app.models import GlobalSetting
 
 app = create_app()
 with app.app_context():
-    setting = db.session.get(GlobalSetting, 'DEV_LOGS_ENABLED')
+    setting = db.session.get(GlobalSetting, "DEV_LOGS_ENABLED")
     if not setting:
-        setting = GlobalSetting(key='DEV_LOGS_ENABLED', value='false')
+        setting = GlobalSetting(key="DEV_LOGS_ENABLED", value="false")
         db.session.add(setting)
         db.session.commit()
-        print('DEV_LOGS_ENABLED inserido.')
+        print("DEV_LOGS_ENABLED inserido.")
     else:
-        print('DEV_LOGS_ENABLED já existe.')
+        print("DEV_LOGS_ENABLED já existe.")

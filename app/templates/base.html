@@ -4,11 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}EchoDent{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/documentos.css') }}" />
+
+  {# Dynamic CSS Variables for Theme Colors #}
+  <style>
+    :root {
+      --primary-color: {{ theme_primary_color }};
+      --secondary-color: {{ theme_secondary_color }};
+    }
+  </style>
+
+  {# CSS Assets com Cache-Busting (AGENTS.MD Auditoria §4.2) #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}?v={{ asset_v }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/documentos.css') }}?v={{ asset_v }}" />
+  {# settings.css REMOVIDO - agora carrega condicionalmente apenas em /settings #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/global_search.css') }}?v={{ asset_v }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/undo_toast.css') }}?v={{ asset_v }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/toast_with_undo.css') }}?v={{ asset_v }}" />
   {% block styles %}{% endblock %}
-  <script src="{{ url_for('static', filename='js/theme-toggle.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/theme-toggle.js') }}?v={{ asset_v }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v={{ asset_v }}" defer></script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
   {% if current_user.is_authenticated %}
@@ -19,6 +33,31 @@
     <header class="main-header">
       <div class="layout-container inner">
         <div class="brand">EchoDent</div>
+        {% if current_user.is_authenticated %}
+          <div class="global-search-wrapper">
+            <input
+              type="search"
+              class="global-search-input"
+              placeholder="Buscar paciente..."
+              name="q"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              inputmode="search"
+              aria-autocomplete="none"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              autofill="off"
+              readonly
+              hx-get="{{ url_for('paciente_bp.busca_global') }}"
+              hx-trigger="input changed delay:300ms"
+              hx-target="#global-search-results"
+              hx-swap="innerHTML"
+            />
+            <div id="global-search-results" class="global-search-results"></div>
+          </div>
+        {% endif %}
         <nav>
           {% if (not current_user.is_authenticated) and request.endpoint != 'auth_bp.login' %}
             <a class="btn btn-secondary" href="{{ url_for('auth_bp.login') }}">Entrar</a>
@@ -43,9 +82,12 @@
     {% block content %}{% endblock %}
     </main>
   </div>
-  
-  <!-- Palco Modal para Geração de Documentos (HTMX target global) -->
-  <div id="modal-documento" class="modal-container"></div>
+
+  <!-- Toast Notification Container (Fase 1.2) -->
+  <div id="toast-container"></div>
+
+  <!-- HTMX Modal Container (Fase 4+) -->
+  <div id="modal-container"></div>
 
   <!-- Modal de Erro reutilizável (inicialmente oculto) -->
   <div id="error-modal" class="modal-overlay" aria-hidden="true">
@@ -61,6 +103,9 @@
   </div>
   <!-- HTMX local (offline-first) -->
   <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/undo_toast.js') }}?v={{ asset_v }}" defer></script>
+  <script src="{{ url_for('static', filename='js/toast_with_undo.js') }}?v={{ asset_v }}" defer></script>
+  <script src="{{ url_for('static', filename='js/modal.js') }}?v={{ asset_v }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

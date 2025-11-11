@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional
-
-from werkzeug.security import check_password_hash
-
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db
-from app.models import Usuario, RoleEnum
+from app.models import RoleEnum, Usuario
 
 
-def authenticate_user(username: str, password: str) -> Optional[Usuario]:
+def authenticate_user(username: str, password: str) -> Usuario | None:
     """Authenticate a user by username and password.
 
     Returns the Usuario if credentials are valid and the user is active,
@@ -43,5 +39,7 @@ def get_or_create_dev_user(role: RoleEnum) -> Usuario:
     user.nome_completo = f"Dev {role.value.title()}"
     user.password_hash = generate_password_hash("devpass")
     db.session.add(user)
-    db.session.commit()
+    # Use flush() instead of commit() to keep transaction alive
+    # This prevents losing the SET LOCAL search_path from before_request
+    db.session.flush()
     return user

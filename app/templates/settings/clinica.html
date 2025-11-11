@@ -1,0 +1,201 @@
+<!-- htmlhint doctype-first:false -->
+{% extends "base.html" %}
+{% block title %}Configurações da Clínica{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}?v={{ asset_v }}" />
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+  {% set active_tab = 'clinica' %}
+  {% include "settings/_tabs.html" %}
+
+  <div class="settings-content">
+    <div class="settings-header">
+      <h1>Informações da Clínica</h1>
+      {% if not is_admin %}
+      <p class="text-muted">Somente administradores podem editar estas informações.</p>
+      {% endif %}
+    </div>
+
+    {# Card de Status da Configuração (Fase 4.3) #}
+    {% include "settings/_status_card.html" %}
+
+    <form method="post"
+          hx-post="{{ url_for('settings_bp.clinica_update') }}"
+          hx-target="#undoToastContainer"
+          hx-swap="innerHTML"
+          class="settings-form">
+      <div class="card">
+        <div class="card-header"><strong>Dados Empresariais</strong></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label for="nome_clinica" class="form-label">Nome da Clínica</label>
+              <input type="text" class="form-control" id="nome_clinica" name="nome_clinica" value="{{ info.nome_clinica or '' }}" {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-3">
+              <label for="cnpj" class="form-label">CNPJ</label>
+              <input type="text" class="form-control" id="cnpj" name="cnpj" value="{{ info.cnpj or '' }}" placeholder="00.000.000/0000-00" data-validate="cnpj" {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-3">
+              <label for="cro_clinica" class="form-label">CRO (Opcional)</label>
+              <input type="text" class="form-control" id="cro_clinica" name="cro_clinica" value="{{ info.cro_clinica or '' }}" {% if not is_admin %}disabled{% endif %}>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header"><strong>Contato</strong></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label for="telefone" class="form-label">Telefone</label>
+              <input type="text" class="form-control" id="telefone" name="telefone" value="{{ info.telefone or '' }}" {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-6">
+              <label for="email" class="form-label">E-mail</label>
+              <input type="email" class="form-control" id="email" name="email" value="{{ info.email or '' }}" data-validate="email" {% if not is_admin %}disabled{% endif %}>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header"><strong>Endereço</strong></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-3">
+              <label for="cep" class="form-label">CEP</label>
+              <input type="text" class="form-control" id="cep" name="cep" value="{{ info.cep or '' }}" placeholder="00000-000" data-validate="cep" data-cep-autocomplete {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-7">
+              <label for="logradouro" class="form-label">Logradouro</label>
+              <input type="text" class="form-control" id="logradouro" name="logradouro" value="{{ info.logradouro or '' }}" {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-2">
+              <label for="numero" class="form-label">Número</label>
+              <input type="text" class="form-control" id="numero" name="numero" value="{{ info.numero or '' }}" {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-4">
+              <label for="complemento" class="form-label">Complemento</label>
+              <input type="text" class="form-control" id="complemento" name="complemento" value="{{ info.complemento or '' }}" {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-4">
+              <label for="bairro" class="form-label">Bairro</label>
+              <input type="text" class="form-control" id="bairro" name="bairro" value="{{ info.bairro or '' }}" {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-3">
+              <label for="cidade" class="form-label">Cidade</label>
+              <input type="text" class="form-control" id="cidade" name="cidade" value="{{ info.cidade or '' }}" {% if not is_admin %}disabled{% endif %}>
+            </div>
+            <div class="col-12 col-md-1">
+              <label for="estado" class="form-label">UF</label>
+              <input type="text" class="form-control" id="estado" name="estado" value="{{ info.estado or '' }}" maxlength="2" {% if not is_admin %}disabled{% endif %}>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header"><strong>Horário de Funcionamento</strong></div>
+        <div class="card-body">
+          <div class="row g-3">
+            {% set dias_semana = [
+              ('seg', 'Segunda'),
+              ('ter', 'Terça'),
+              ('qua', 'Quarta'),
+              ('qui', 'Quinta'),
+              ('sex', 'Sexta'),
+              ('sab', 'Sábado'),
+              ('dom', 'Domingo')
+            ] %}
+            {% for dia_cod, dia_nome in dias_semana %}
+              {% set horario_dia = (info.horario_funcionamento or {})[dia_cod] %}
+              {% set inicio, fim = ('', '') if not horario_dia else horario_dia.split('-') %}
+              <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label">{{ dia_nome }}</label>
+                <div class="input-group input-group-sm">
+                  <input type="time" class="form-control" name="{{ dia_cod }}_inicio" value="{{ inicio }}" {% if not is_admin %}disabled{% endif %}>
+                  <span class="input-group-text">até</span>
+                  <input type="time" class="form-control" name="{{ dia_cod }}_fim" value="{{ fim }}" {% if not is_admin %}disabled{% endif %}>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {% if is_admin %}
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+      </div>
+      {% endif %}
+    </form>
+
+    {% if is_admin %}
+    <div class="card mt-4">
+      <div class="card-header"><strong>Logos e Imagens</strong></div>
+      <div class="card-body">
+        <p class="text-muted small">Envie as imagens da clínica (logos para cabeçalho/rodapé, marca d'água e favicon).</p>
+        <div class="row g-3">
+          {% set logo_types = [
+            ('cabecalho', 'Logo Cabeçalho', info.logo_cabecalho_path),
+            ('rodape', 'Logo Rodapé', info.logo_rodape_path),
+            ('marca_dagua', 'Marca d\'água', info.marca_dagua_path),
+            ('favicon', 'Favicon', info.favicon_path)
+          ] %}
+          {% for logo_type, logo_label, logo_path in logo_types %}
+          <div class="col-12 col-md-6">
+            <div class="logo-upload-card">
+              <label class="form-label">{{ logo_label }}</label>
+
+              {# Preview Container #}
+              <div class="logo-preview-container">
+                {% if logo_path %}
+                <img src="{{ url_for('static', filename='../' ~ logo_path) }}" alt="{{ logo_label }}" class="logo-preview-img" data-preview-img="{{ logo_type }}">
+                {% else %}
+                <img src="{{ url_for('static', filename='img/placeholder-logo.svg') }}" alt="Placeholder" class="logo-preview-img hidden" data-preview-img="{{ logo_type }}">
+                {% endif %}
+              </div>
+
+              {# Upload Form #}
+              <form method="POST" action="{{ url_for('settings_bp.clinica_upload_logo') }}" enctype="multipart/form-data" class="logo-upload-form">
+                <input type="hidden" name="logo_type" value="{{ logo_type }}">
+                <div class="input-group input-group-sm">
+                  <input type="file" class="form-control" name="logo_file" accept="image/*" data-logo-preview="{{ logo_type }}" required>
+                  <button type="submit" class="btn btn-outline-primary">Enviar</button>
+                </div>
+              </form>
+
+              {# Remove Button (se logo existe) #}
+              {% if logo_path %}
+              <button type="button" class="btn btn-outline-danger btn-sm mt-2" hx-delete="{{ url_for('settings_bp.clinica_remove_logo', logo_type=logo_type) }}" hx-confirm="Confirma a remoção do {{ logo_label }}?">
+                Remover Logo
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# Container para Toast Rollback via HTMX OOB (Fase 4.2) #}
+<div id="undoToastContainer"></div>
+
+{# Toast de Rollback (Fase 4.2) #}
+{% include "settings/_undo_toast.html" %}
+
+{# Bootstrap de dados do undo via data-atributo (sem JS inline) #}
+{% if session.get('undo_data') %}
+  <div id="undoToastBootstrap"
+       data-undo="{{ session.pop('undo_data') | tojson }}"
+       hidden></div>
+{% endif %}
+{% endblock %}

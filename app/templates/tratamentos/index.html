@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% from "components/_toast.html" import toast %}
+
+{% block title %}Tratamentos{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}?v={{ asset_v }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-header-content">
+            <h1 class="page-title">Catálogo de Tratamentos</h1>
+            <p class="page-subtitle">Gerencie procedimentos, preços e categorias</p>
+        </div>
+        {% if current_user.role == 'ADMIN' %}
+        <div class="page-header-actions">
+            <button type="button"
+                    class="btn btn-primary"
+                    hx-get="{{ url_for('tratamentos_bp.create') }}"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Novo Tratamento
+            </button>
+            <button type="button"
+                    class="btn btn-secondary"
+                    hx-get="{{ url_for('tratamentos_bp.ajustar_precos') }}"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                Ajustar Preços
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('tratamentos_bp.index') }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="filter-categoria" class="form-label">Categoria</label>
+                        <select id="filter-categoria"
+                                name="categoria"
+                                class="form-select"
+                                onchange="this.form.submit()">
+                            <option value="">Todas as categorias</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat }}" {% if request.args.get('categoria') == cat %}selected{% endif %}>
+                                {{ cat }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filter-ativo" class="form-label">Status</label>
+                        <select id="filter-ativo"
+                                name="ativo"
+                                class="form-select"
+                                onchange="this.form.submit()">
+                            <option value="">Todos</option>
+                            <option value="true" {% if request.args.get('ativo') == 'true' %}selected{% endif %}>Ativos</option>
+                            <option value="false" {% if request.args.get('ativo') == 'false' %}selected{% endif %}>Inativos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                            </svg>
+                            Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% if tratamentos %}
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nome</th>
+                        <th>Categoria</th>
+                        <th>Preço Padrão</th>
+                        <th>Status</th>
+                        {% if current_user.role == 'ADMIN' %}
+                        <th class="text-end">Ações</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for proc in tratamentos %}
+                    <tr class="{% if not proc.is_active %}table-row-disabled{% endif %}">
+                        <td>
+                            {% if proc.codigo %}
+                            <code class="badge badge-outline">{{ proc.codigo }}</code>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ proc.nome }}</strong>
+                            {% if proc.descricao %}
+                            <br>
+                            <small class="text-muted">{{ proc.descricao[:60] }}{% if proc.descricao|length > 60 %}...{% endif %}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-secondary">{{ proc.categoria.value }}</span>
+                        </td>
+                        <td>
+                            <strong class="text-primary">R$ {{ "%.2f"|format(proc.valor_padrao|float) }}</strong>
+                        </td>
+                        <td>
+                            {% if proc.is_active %}
+                            <span class="badge badge-success">Ativo</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Inativo</span>
+                            {% endif %}
+                        </td>
+                        {% if current_user.role == 'ADMIN' %}
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button"
+                                        class="btn btn-outline-primary"
+                                        hx-get="{{ url_for('tratamentos_bp.update', proc_id=proc.id) }}"
+                                        hx-target="#modal-container"
+                                        hx-swap="innerHTML"
+                                        title="Editar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                                    </svg>
+                                </button>
+                                {% if proc.is_active %}
+                                <button type="button"
+                                        class="btn btn-outline-danger"
+                                        hx-delete="{{ url_for('tratamentos_bp.delete', proc_id=proc.id) }}"
+                                        hx-confirm="Deseja realmente desativar '{{ proc.nome }}'? Esta ação pode ser revertida."
+                                        title="Desativar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                    </svg>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-state-icon">
+                    <path d="M3 3v18h18M7 16l3-3 3 3 4-4"/>
+                </svg>
+                <h3 class="empty-state-title">Nenhum tratamento encontrado</h3>
+                <p class="empty-state-text">
+                    {% if request.args.get('categoria') or request.args.get('ativo') %}
+                    Tente ajustar os filtros para visualizar mais resultados.
+                    {% else %}
+                    Comece criando o primeiro tratamento para o catálogo.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal Container for HTMX -->
+    <div id="modal-container"></div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+<div class="modal-overlay" id="modal-colunas-config">
+  <div class="modal-card">
+    <h3 class="modal-title">Configurar Colunas da Lista</h3>
+    <form
+      hx-post="{{ url_for('paciente_bp.configurar_colunas') }}"
+      hx-target="#tabela-pacientes-container"
+      hx-swap="innerHTML"
+    >
+      <div class="form-group mb-3">
+        <p class="text-muted mb-2">
+          Selecione as colunas que deseja visualizar:
+        </p>
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="telefone"
+              {% if colunas_visiveis.telefone %}checked{% endif %}
+            />
+            Telefone
+          </label>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="email"
+              {% if colunas_visiveis.email %}checked{% endif %}
+            />
+            E-mail
+          </label>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="idade"
+              {% if colunas_visiveis.idade %}checked{% endif %}
+            />
+            Idade
+          </label>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="sexo"
+              {% if colunas_visiveis.sexo %}checked{% endif %}
+            />
+            Sexo
+          </label>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="data_ultimo_registro"
+              {% if colunas_visiveis.data_ultimo_registro %}checked{% endif %}
+            />
+            Última Interação
+          </label>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="status_anamnese"
+              {% if colunas_visiveis.status_anamnese %}checked{% endif %}
+            />
+            Status Anamnese
+          </label>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="cpf"
+              {% if colunas_visiveis.cpf %}checked{% endif %}
+            />
+            CPF
+          </label>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="cidade"
+              {% if colunas_visiveis.cidade %}checked{% endif %}
+            />
+            Cidade
+          </label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-close-modal
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

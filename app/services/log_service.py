@@ -1,6 +1,8 @@
 import traceback
 from datetime import datetime, timedelta, timezone
+
 from flask import Request
+
 from .. import db
 from ..models import DeveloperLog
 
@@ -15,7 +17,7 @@ def record_exception(
     """
     Grava uma exceção não tratada no banco de dados 'logs.db'.
     Esta função é chamada pelo handler global de erros.
-    
+
     Aderência Mandatória: Regra 7.5 (Atomicidade).
     """
     try:
@@ -52,8 +54,8 @@ def record_exception(
         new_log = DeveloperLog()
         new_log.error_type = error_type_str
         new_log.traceback = tb_string
-        new_log.request_url = request.url if request else 'N/A'
-        new_log.request_method = request.method if request else 'N/A'
+        new_log.request_url = request.url if request else "N/A"
+        new_log.request_method = request.method if request else "N/A"
         new_log.user_id = user_id
         new_log.request_body = body_content
 
@@ -78,15 +80,15 @@ def purge_old_logs(days: int = 30) -> None:
     """
     try:
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
-        
+
         # O SQLAlchemy usará o bind 'logs' automaticamente devido ao modelo
         logs_to_delete = db.session.query(DeveloperLog).filter(
             DeveloperLog.timestamp < cutoff_date
         )
-        
+
         deleted_count = logs_to_delete.delete(synchronize_session=False)
         db.session.commit()
-        
+
         print(f"Log Purge: {deleted_count} logs antigos removidos.")
 
     except Exception as e:
@@ -122,3 +124,13 @@ def purge_all_logs():
         db.session.rollback()
         print(f"CRITICAL: Falha ao purgar todos os logs: {e}")
         return False
+
+
+def get_total_logs_count() -> int:
+    """
+    Retorna o total de logs armazenados no banco.
+    """
+    try:
+        return db.session.query(DeveloperLog).count()
+    except Exception:
+        return 0

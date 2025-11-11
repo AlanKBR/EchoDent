@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Pacientes - Lista{% endblock %}
+
+{% block styles %}
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/paciente_lista.css') }}"
+  />
+{% endblock %}
+
+{% block content %}
+  <div class="pacientes-container">
+    <div class="card">
+      <div class="card-header">
+        <span>Pacientes</span>
+        <button
+          class="btn btn-secondary btn-sm"
+          hx-get="{{ url_for('paciente_bp.modal_configurar_colunas') }}"
+          hx-target="#modal-container"
+          hx-swap="innerHTML"
+        >
+          ⚙️ Configurar Colunas
+        </button>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">
+          <a
+            href="{{ url_for('paciente_bp.novo') }}"
+            class="btn btn-secondary"
+          >
+            Novo Paciente
+          </a>
+        </p>
+        <div id="tabela-pacientes-container">
+          {% include 'pacientes/shared/_tabela_fragment.html' %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

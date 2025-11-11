@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
 
 
 def parse_iso_to_utc(
-    value: Optional[str], assume_all_day: bool = False
+    value: str | None, assume_all_day: bool = False
 ) -> datetime:
     """Parse an ISO-8601 string into a timezone-aware UTC datetime.
 
@@ -49,7 +48,7 @@ def parse_iso_to_utc(
 essential_iso_format = "%Y-%m-%dT%H:%M:%S%z"
 
 
-def format_dt_iso(dt: Optional[datetime]) -> Optional[str]:
+def format_dt_iso(dt: datetime | None) -> str | None:
     """Format a timezone-aware UTC datetime to ISO string with 'Z'.
 
     If dt is None, returns None.

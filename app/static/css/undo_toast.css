@@ -1,0 +1,126 @@
+/* Undo Toast styles extracted from templates (Fase 4.2) */
+.undo-toast {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 400px;
+  background: var(--color-surface, #fff);
+  border: 2px solid var(--color-primary-main, #0d6efd);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.undo-toast.hidden {
+  display: none;
+}
+
+.undo-toast-content {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+}
+
+.undo-toast-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.undo-toast-message {
+  flex: 1;
+}
+
+.undo-toast-message strong {
+  display: block;
+  color: var(--color-text-primary, #212529);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.undo-toast-subtitle {
+  color: var(--color-text-secondary, #6c757d);
+  font-size: 12px;
+  margin: 0;
+}
+
+#undoTimer {
+  font-weight: bold;
+  color: var(--color-primary-main, #0d6efd);
+}
+
+.undo-toast-button {
+  background: var(--color-primary-main, #0d6efd);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.undo-toast-button:hover {
+  background: var(--color-primary-dark, #0b5ed7);
+}
+
+.undo-toast-close {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--color-text-secondary, #6c757d);
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.undo-toast-close:hover {
+  color: var(--color-text-primary, #212529);
+}
+
+.undo-toast-progress {
+  height: 4px;
+  background: var(--color-border, #dee2e6);
+  overflow: hidden;
+  border-radius: 0 0 6px 6px;
+}
+
+.undo-toast-progress-bar {
+  height: 100%;
+  background: var(--color-primary-main, #0d6efd);
+  width: 100%;
+  transition: width 30s linear;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(420px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(420px);
+    opacity: 0;
+  }
+}
+
+.undo-toast.hiding {
+  animation: slideOutRight 0.3s ease-in forwards;
+}

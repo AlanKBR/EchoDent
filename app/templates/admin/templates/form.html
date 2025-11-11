@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if template else 'Novo' }} Template{% endblock %}
+
+{% block content %}
+<h2>{{ 'Editar' if template else 'Novo' }} Template</h2>
+<form method="post">
+  <div class="form-group mb-2">
+    <label for="nome">Nome</label>
+    <input type="text" name="nome" id="nome" required value="{{ template.nome if template else '' }}" />
+  </div>
+  <div class="form-group mb-2">
+    <label for="tipo_doc">Tipo de Documento</label>
+    <select name="tipo_doc" id="tipo_doc" required>
+      {% for t in [TipoDocumento.ATESTADO, TipoDocumento.RECEITA, TipoDocumento.INSTRUCAO_PO] %}
+      {% if template and template.tipo_doc == t %}
+      <option value="{{ t.value }}" selected>{{ t.value }}</option>
+      {% else %}
+      <option value="{{ t.value }}">{{ t.value }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="form-group mb-2">
+    <label for="template_body">Conteúdo do Template</label>
+    <textarea name="template_body" id="template_body" rows="16" placeholder="Use $variaveis e blocos como __BLOCO_CID__">{{ template.template_body if template else '' }}</textarea>
+  </div>
+
+  <div class="form-group mb-3">
+    <label>
+      <input type="checkbox" name="is_active" value="1" {% if (template and template.is_active) or (not template) %}checked{% endif %}>
+      Ativo
+    </label>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Guia de Globais</div>
+    <div class="card-body">
+      <ul>
+        <li>$paciente_nome</li>
+        <li>$paciente_cpf</li>
+        <li>$paciente_email</li>
+        <li>$paciente_telefone</li>
+        <li>$dentista_nome</li>
+        <li>$dentista_cro</li>
+        <li>$data_emissao</li>
+      </ul>
+      <p>Blocos condicionais suportados:</p>
+      <ul>
+        <li>__BLOCO_CID__ (renderiza um parágrafo com o CID quando $cid_code estiver presente)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a class="btn btn-secondary" href="{{ url_for('admin_templates_bp.index') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

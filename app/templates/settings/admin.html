@@ -1,0 +1,153 @@
+<!-- htmlhint doctype-first:false -->
+{% extends "base.html" %}
+{% block title %}Painel Administrativo{% endblock %}
+
+{% block styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}?v={{ asset_v }}" />
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+  {% set active_tab = 'admin' %}
+  {% include "settings/_tabs.html" %}
+
+  <div class="settings-content">
+    <div class="settings-header">
+      <h1>Painel Administrativo</h1>
+      <p class="text-muted">Gestão de usuários, logs, configurações globais e ferramentas avançadas.</p>
+    </div>
+
+    {# Sub-navegação da aba Admin #}
+    <nav class="admin-subnav mb-4">
+      <a href="#usuarios" class="admin-subnav-link active" data-section="usuarios">Usuários</a>
+      <a href="#devlogs" class="admin-subnav-link" data-section="devlogs">Dev Logs</a>
+      <a href="{{ url_for('settings_bp.audit_logs') }}" class="admin-subnav-link">Auditoria</a>
+      <a href="#global" class="admin-subnav-link" data-section="global">Configurações Globais</a>
+      <a href="#backups" class="admin-subnav-link" data-section="backups">Backups</a>
+    </nav>
+
+    {# Seção: Gestão de Usuários #}
+    <div id="usuarios" class="admin-section active">
+      <h2 class="h4">Gestão de Usuários</h2>
+
+      {# Timeline de Alterações - Fase 4.4 #}
+      {% include "settings/_timeline.html" %}
+
+      <div class="card mt-3">
+        <div class="card-header"><strong>Criar Novo Usuário</strong></div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('settings_bp.admin_criar_usuario') }}">
+            <div class="row g-3">
+              <div class="col-12 col-md-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+              </div>
+              <div class="col-12 col-md-3">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+              </div>
+              <div class="col-12 col-md-3">
+                <label for="role" class="form-label">Papel</label>
+                <select class="form-select" id="role" name="role" required>
+                  <option value="">Selecione...</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="DENTISTA">Dentista</option>
+                  <option value="SECRETARIA">Secretária</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-3">
+                <label for="nome_completo" class="form-label">Nome Completo</label>
+                <input type="text" class="form-control" id="nome_completo" name="nome_completo">
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary">Criar Usuário</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header"><strong>Usuários Ativos</strong></div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Nome</th>
+                  <th>Papel</th>
+                  <th>CRO</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in usuarios %}
+                <tr>
+                  <td>{{ u.id }}</td>
+                  <td>{{ u.username }}</td>
+                  <td>{{ u.nome_completo or '-' }}</td>
+                  <td><span class="badge bg-secondary">{{ u.role.value }}</span></td>
+                  <td>{{ u.cro_registro or '-' }}</td>
+                  <td>
+                    {% if u.id != current_user.id %}
+                    <form method="POST" action="{{ url_for('settings_bp.admin_desativar_usuario', user_id=u.id) }}" style="display:inline;">
+                      <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Desativar usuário {{ u.username }}?')">Desativar</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted small">Você</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Seção: Dev Logs #}
+    <div id="devlogs" class="admin-section" style="display:none;">
+      <h2 class="h4">Logs de Desenvolvedor</h2>
+      <div class="alert alert-info">
+        Total de logs: <strong>{{ total_logs }}</strong>
+      </div>
+      <div class="mb-3">
+        <a href="{{ url_for('settings_bp.devlogs') }}" class="btn btn-primary">Ver Todos os Logs</a>
+        <form method="POST" action="{{ url_for('settings_bp.purge_devlogs') }}" style="display:inline;" onsubmit="return confirm('Confirma a exclusão de TODOS os logs?')">
+          <button type="submit" class="btn btn-outline-danger">Purgar Todos os Logs</button>
+        </form>
+      </div>
+    </div>
+
+    {# Seção: Configurações Globais #}
+    <div id="global" class="admin-section" style="display:none;">
+      <h2 class="h4">Configurações Globais</h2>
+      <div class="mb-3">
+        <a href="{{ url_for('settings_bp.global_settings') }}" class="btn btn-primary">Gerenciar Configurações Globais</a>
+      </div>
+      <div class="alert alert-warning">
+        <strong>Atenção:</strong> Configurações globais afetam todo o sistema (DEV_LOGS_ENABLED, ASSET_VERSION, etc.).
+      </div>
+    </div>
+
+    {# Seção: Backups #}
+    <div id="backups" class="admin-section" style="display:none;">
+      <h2 class="h4">Backups</h2>
+      <div class="alert alert-secondary">
+        <strong>Em desenvolvimento:</strong> Funcionalidade de backup automático será implementada em breve.
+      </div>
+      <p class="text-muted">
+        Por enquanto, utilize ferramentas manuais de backup do PostgreSQL (pg_dump) para criar cópias de segurança do banco de dados.
+      </p>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='js/settings_admin.js') }}?v={{ asset_v }}" defer></script>
+{% endblock %}
+{% endblock %}

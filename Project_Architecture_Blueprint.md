@@ -279,7 +279,7 @@ Integration patterns
 Layer separation
 ```python
 # Blueprint → Service → Template
-@financeiro_bp.route("/plano/<int:plano_id>/editar", methods=["POST"])   
+@financeiro_bp.route("/plano/<int:plano_id>/editar", methods=["POST"])
 def editar_plano(plano_id: int):
     items_data = ...  # build from form
     update_plano_proposto(plano_id=plano_id, items_data=items_data, usuario_id=current_user.id)

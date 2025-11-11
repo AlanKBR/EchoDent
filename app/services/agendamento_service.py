@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from datetime import date as date_cls, datetime, time, timedelta
-from typing import List, Dict, Optional
+from datetime import date as date_cls
+from datetime import datetime, time, timedelta
 
 from app import db
 from app.models import (
     Agendamento,
-    StatusAgendamentoEnum,
     CalendarEvent,
     Paciente,
+    StatusAgendamentoEnum,
 )
+
 from .agenda_service import format_dt_iso
 
 
@@ -69,8 +70,9 @@ def update_agendamento_status(
 # Agenda — Search Range e Busca de Pacientes (cross-bind)
 # ----------------------------------
 
+
 def _apply_event_filters(
-    q, dentist_ids: List[int], include_unassigned: bool, qstr: str
+    q, dentist_ids: list[int], include_unassigned: bool, qstr: str
 ):
     """Aplica filtros comuns usados na listagem de eventos."""
     if dentist_ids:
@@ -102,8 +104,8 @@ def _apply_event_filters(
 
 
 def get_event_search_range(
-    dentist_ids: List[int], include_unassigned: bool, qstr: str
-) -> Dict[str, Optional[str] | int]:
+    dentist_ids: list[int], include_unassigned: bool, qstr: str
+) -> dict[str, str | None | int]:
     """Retorna min(start), max(COALESCE(end,start)) e count para os filtros.
 
     Formato compatível com o frontend:
@@ -128,7 +130,7 @@ def get_event_search_range(
     }
 
 
-def search_pacientes_by_name(query_str: str, limit: int = 10) -> List[str]:
+def search_pacientes_by_name(query_str: str, limit: int = 10) -> list[str]:
     """Autocomplete: retorna até `limit` nomes iniciando por `query_str`.
 
     Leitura cross-bind: Paciente está no bind default.
@@ -145,7 +147,7 @@ def search_pacientes_by_name(query_str: str, limit: int = 10) -> List[str]:
         .limit(limit)
         .all()
     )
-    names: List[str] = []
+    names: list[str] = []
     for r in rows:
         try:
             nm = str(r[0]).strip()

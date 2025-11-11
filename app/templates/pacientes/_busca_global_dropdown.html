@@ -1,0 +1,34 @@
+{% if resultados %}
+  <div class="global-search-dropdown">
+    {% for p in resultados %}
+      <a
+        href="{{ url_for('paciente_bp.detalhe', paciente_id=p.id) }}"
+        class="search-result-item"
+      >
+        <div class="result-name">{{ p.nome_completo }}</div>
+        <div class="result-meta">
+          {% if p.ultima_interacao_at %}
+            <span class="result-timestamp">
+              {{ p.ultima_interacao_at.strftime('%d/%m/%Y %H:%M') }}
+            </span>
+            {% if p.ultima_interacao_desc %}
+              <span class="result-desc">{{ p.ultima_interacao_desc }}</span>
+            {% endif %}
+          {% else %}
+            <span class="result-desc text-muted">Sem registros recentes</span>
+          {% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="global-search-dropdown">
+    <div class="search-result-empty">
+      {% if query %}
+        Nenhum paciente encontrado para "{{ query }}".
+      {% else %}
+        Nenhum registro recente.
+      {% endif %}
+    </div>
+  </div>
+{% endif %}

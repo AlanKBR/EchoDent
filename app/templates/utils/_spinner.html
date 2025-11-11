@@ -1,0 +1,33 @@
+{#
+  Spinner SVG Reutilizável
+
+  Uso:
+    {% include 'utils/_spinner.html' %}
+    {% include 'utils/_spinner.html' with spinner_size='sm' %}
+    {% include 'utils/_spinner.html' with spinner_size='lg' %}
+
+  Tamanhos:
+    - sm: 12x12px (badges, textos inline)
+    - (padrão): 16x16px (botões)
+    - lg: 24x24px (overlays, cards)
+#}
+{% set size_map = {'sm': 12, 'lg': 24} %}
+{% set size = size_map.get(spinner_size, 16) %}
+{% set radius = (size / 2) - 2 %}
+{% set center = size / 2 %}
+
+<svg class="spinner{% if spinner_size %} spinner-{{ spinner_size }}{% endif %}"
+     width="{{ size }}"
+     height="{{ size }}"
+     viewBox="0 0 {{ size }} {{ size }}"
+     aria-hidden="true"
+     role="presentation">
+  <circle cx="{{ center }}"
+          cy="{{ center }}"
+          r="{{ radius }}"
+          stroke="currentColor"
+          stroke-width="2"
+          fill="none"
+          stroke-linecap="round"
+          stroke-dasharray="30 10"/>
+</svg>

@@ -1,28 +1,23 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from flask import (
     Blueprint,
+    abort,
+    current_app,
+    flash,
+    redirect,
     render_template,
     request,
-    redirect,
+    session,
     url_for,
-    flash,
-    current_app,
-    abort,
 )
-from flask_login import (
-    login_user,
-    logout_user,
-    login_required,
-)
-from datetime import timedelta
-from flask import session
+from flask_login import login_required, login_user, logout_user
 
-
-from app.services.user_service import authenticate_user, get_or_create_dev_user
 from app.models import RoleEnum
+from app.services.user_service import authenticate_user, get_or_create_dev_user
 from app.utils.decorators import debug_only
-
 
 auth_bp = Blueprint("auth_bp", __name__)
 
@@ -108,6 +103,7 @@ def dev_ensure_login():  # pragma: no cover - dev helper
     # If user already authenticated, just forward
     try:
         from flask_login import current_user
+
         if current_user and getattr(current_user, "is_authenticated", False):
             nxt = request.args.get("next") or url_for("core_bp.dashboard")
             return redirect(nxt)
@@ -129,3 +125,38 @@ def dev_ensure_login():  # pragma: no cover - dev helper
     login_user(user, remember=True, duration=timedelta(days=30))
     nxt = request.args.get("next") or url_for("core_bp.dashboard")
     return redirect(nxt)
+
+
+@auth_bp.route("/__dev/quick_login/<role>", methods=["GET"])  # E2E helper
+@debug_only
+def dev_quick_login(role: str):  # pragma: no cover - E2E test helper
+    """Ultra-fast login for E2E tests - returns JSON status.
+
+    Usage: GET /__dev/quick_login/ADMIN
+    Returns: {"status": "ok", "user": "Dev Admin", "role": "ADMIN"}
+
+    Use this in MCP tests to verify login without navigating pages.
+    """
+    if not (current_app.debug or current_app.config.get("TESTING")):
+        abort(404)
+
+    role_map = {
+        "admin": RoleEnum.ADMIN,
+        "dentista": RoleEnum.DENTISTA,
+        "secretaria": RoleEnum.SECRETARIA,
+    }
+    key = (role or "").strip().upper()
+    enum = role_map.get(key.lower())
+    if not enum:
+        return {"status": "error", "message": f"Invalid role: {key}"}, 400
+
+    user = get_or_create_dev_user(enum)
+    session.permanent = True
+    login_user(user, remember=True, duration=timedelta(days=30))
+
+    return {
+        "status": "ok",
+        "user": user.nome_completo,
+        "role": enum.value,
+        "username": user.username,
+    }

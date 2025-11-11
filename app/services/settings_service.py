@@ -1,12 +1,17 @@
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.models import GlobalSetting, db
 from app.utils.sanitization import sanitizar_input
-from sqlalchemy.exc import SQLAlchemyError
 
 # Whitelist de chaves de configuração permitidas
 WHITELIST_KEYS = {
     "DEV_LOGS_ENABLED",
     # Permite forçar cache-busting de assets (ex.: agenda/app.js) via env/UI
     "ASSET_VERSION",
+    # Configurações de tema (cores)
+    "THEME_PRIMARY_COLOR",
+    "THEME_SECONDARY_COLOR",
+    "THEME_USE_SYSTEM_COLOR",
 }
 
 
@@ -21,6 +26,7 @@ def update_setting(key: str, value: str):
     Atualiza ou cria uma configuração global de forma atômica e sanitizada.
     """
     from flask import current_app
+
     session = db.session
     try:
         sanitized_value = sanitizar_input(value)
@@ -50,6 +56,7 @@ def update_settings_bulk(settings_dict: dict) -> bool:
     - Um único commit ao final; rollback em caso de erro.
     """
     from flask import current_app
+
     session = db.session
     try:
         for key, value in (settings_dict or {}).items():

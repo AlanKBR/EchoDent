@@ -1,0 +1,699 @@
+/* ============================================================================
+   Settings Module - Estilos para o menu de configurações
+   ========================================================================= */
+
+/* Container principal */
+.settings-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Tabs de navegação principal */
+.settings-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding: 0.5rem;
+  background: var(--bs-light);
+  border-radius: 0.5rem;
+  overflow-x: auto;
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  color: var(--bs-body-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.settings-tab .icon {
+  flex-shrink: 0;
+}
+
+.settings-tab:hover {
+  background: var(--bs-white);
+  color: var(--bs-primary);
+}
+
+.settings-tab.active {
+  background: var(--bs-primary);
+  color: var(--bs-white);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Header da página */
+.settings-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--bs-gray-200);
+}
+
+.settings-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--bs-dark);
+}
+
+.settings-header p.text-muted {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+}
+
+/* Formulários */
+.settings-form .card {
+  border: 1px solid var(--bs-gray-300);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.settings-form .card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.settings-form .card-header {
+  background: var(--bs-light);
+  font-weight: 600;
+  color: var(--bs-dark);
+  border-bottom: 1px solid var(--bs-gray-300);
+}
+
+/* Switches modernos */
+.form-check-input:checked {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+/* Color pickers */
+.form-control-color {
+  width: 60px;
+  height: 38px;
+  padding: 0.25rem;
+}
+
+/* Admin sub-navigation */
+.admin-subnav {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bs-gray-100);
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+
+.admin-subnav-link {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border-radius: 0.25rem;
+  color: var(--bs-body-color);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.admin-subnav-link:hover {
+  background: var(--bs-white);
+  color: var(--bs-primary);
+}
+
+.admin-subnav-link.active {
+  background: var(--bs-primary);
+  color: var(--bs-white);
+}
+
+/* Admin sections */
+.admin-section {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .settings-container {
+    padding: 1rem 0.5rem;
+  }
+
+  .settings-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-tab {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .settings-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Dark mode support (se houver toggle) */
+[data-theme="dark"] .settings-tabs {
+  background: var(--bs-dark);
+}
+
+[data-theme="dark"] .settings-tab {
+  color: var(--bs-gray-300);
+}
+
+[data-theme="dark"] .settings-tab:hover {
+  background: var(--bs-gray-800);
+  color: var(--bs-light);
+}
+
+[data-theme="dark"] .settings-form .card {
+  background: var(--bs-dark);
+  border-color: var(--bs-gray-700);
+}
+
+[data-theme="dark"] .settings-form .card-header {
+  background: var(--bs-gray-800);
+  border-color: var(--bs-gray-700);
+  color: var(--bs-light);
+}
+
+/* ============================================================================
+   Logo Upload & Preview (Fase 1.4)
+   ========================================================================= */
+.logo-upload-card {
+  padding: var(--space-4);
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+}
+
+.logo-preview-container {
+  margin: var(--space-3) 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+  background: color-mix(in oklab, var(--color-border) 20%, var(--color-surface-card));
+  border-radius: var(--border-radius-medium);
+  overflow: hidden;
+}
+
+.logo-preview-img {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  transition: opacity var(--transition-short);
+}
+
+.logo-preview-img.hidden {
+  display: none;
+}
+
+.logo-upload-form {
+  margin-top: var(--space-3);
+}
+
+/* ============================================================================
+   Tratamentos & Integrações (Fase 2 & 3) - Classes ESCOPADAS
+   IMPORTANTE: Todas as classes abaixo SÓ funcionam dentro de .settings-container
+   Isso previne vazamento de CSS para outros módulos (ex: pacientes/ficha)
+   ========================================================================= */
+
+/* Grid system simplificado (ESCOPADO - não afeta Bootstrap global) */
+.settings-container .row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: calc(var(--space-2) * -1);
+  margin-right: calc(var(--space-2) * -1);
+}
+
+.settings-container .row > * {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.settings-container .col-md-4 {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.settings-container .col-md-6 {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.settings-container .col-md-8 {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .settings-container .col-md-4 {
+    width: 33.333333%;
+  }
+
+  .settings-container .col-md-6 {
+    width: 50%;
+  }
+
+  .settings-container .col-md-8 {
+    width: 66.666667%;
+  }
+}
+
+/* Utilitários de espaçamento (ESCOPADOS) */
+.settings-container .mb-3 {
+  margin-bottom: var(--space-3);
+}
+
+.settings-container .mb-4 {
+  margin-bottom: var(--space-4);
+}
+
+.settings-container .mt-3 {
+  margin-top: var(--space-3);
+}
+
+.settings-container .mt-4 {
+  margin-top: var(--space-4);
+}
+
+.settings-container .p-0 {
+  padding: 0 !important;
+}
+
+.settings-container .p-3 {
+  padding: var(--space-3);
+}
+
+.settings-container .py-4 {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
+}
+
+.settings-container .py-5 {
+  padding-top: var(--space-5);
+  padding-bottom: var(--space-5);
+}
+
+/* Utilitários de texto (ESCOPADOS) */
+.settings-container .text-center {
+  text-align: center;
+}
+
+.settings-container .text-end {
+  text-align: right;
+}
+
+.settings-container .text-muted {
+  color: var(--color-text-secondary);
+}
+
+.settings-container .text-primary {
+  color: var(--color-primary-main);
+}
+
+.settings-container .text-success {
+  color: var(--color-primary-main);
+}
+
+.settings-container .text-danger {
+  color: var(--color-danger-border);
+}
+
+.settings-container .d-block {
+  display: block;
+}
+
+.settings-container .d-flex {
+  display: flex;
+}
+
+.settings-container .align-items-end {
+  align-items: flex-end;
+}
+
+.settings-container .align-items-center {
+  align-items: center;
+}
+
+.settings-container .justify-content-center {
+  justify-content: center;
+}
+
+/* Btn group (agrupamento de botões) - ESCOPADO */
+.settings-container .btn-group {
+  display: inline-flex;
+  gap: 0;
+}
+
+.settings-container .btn-group > .btn {
+  border-radius: 0;
+}
+
+.settings-container .btn-group > .btn:first-child {
+  border-top-left-radius: var(--border-radius-medium);
+  border-bottom-left-radius: var(--border-radius-medium);
+}
+
+.settings-container .btn-group > .btn:last-child {
+  border-top-right-radius: var(--border-radius-medium);
+  border-bottom-right-radius: var(--border-radius-medium);
+}
+
+.settings-container .btn-group-sm > .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Form controls (inputs e selects básicos) - ESCOPADOS */
+.settings-container .form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.settings-container .form-control,
+.settings-container .form-select {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  transition: border-color var(--transition-short);
+}
+
+.settings-container .form-control:focus,
+.settings-container .form-select:focus {
+  outline: none;
+  border-color: var(--color-primary-main);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary-main) 15%, transparent);
+}
+
+.settings-container .form-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.settings-container .form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.settings-container .form-check-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.settings-container .form-check-label {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Modal (reutilizando estrutura do global.css mas ESCOPADO) */
+.settings-container .modal-dialog {
+  position: relative;
+  z-index: 1;
+  background-color: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-width: 600px;
+  width: 100%;
+}
+
+.settings-container .modal-dialog.modal-lg {
+  max-width: 900px;
+}
+
+.settings-container .modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-container .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-container .modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.settings-container .modal-body {
+  padding: var(--space-4);
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 250px);
+}
+
+.settings-container .modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.settings-container .btn-close {
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-short);
+}
+
+.settings-container .btn-close:hover {
+  color: var(--color-text-primary);
+}
+
+/* Page header comum - ESCOPADO */
+.settings-container .page-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.settings-container .page-header-content {
+  flex: 1;
+}
+
+.settings-container .page-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.settings-container .page-subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.settings-container .page-header-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Card header com título e actions (para integrações) - ESCOPADO */
+.settings-container .card-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.settings-container .card-header-title h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.settings-container .card-header-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Preview section para modal de ajuste de preços - ESCOPADO */
+.settings-container .preview-section {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+  min-height: 200px;
+}
+
+/* Linha de tabela desabilitada */
+.table-row-disabled {
+  opacity: 0.5;
+}
+
+/* Badge com outline (sem background) */
+.badge-outline {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+/* Variantes de badge */
+.badge {
+  display: inline-block;
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+}
+
+.badge-success {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.badge-secondary {
+  background-color: color-mix(in oklab, var(--color-border) 80%, var(--color-text-secondary));
+  color: var(--color-text-primary);
+}
+
+.badge-danger {
+  background-color: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  color: var(--color-danger-text);
+}
+
+/* Badge pequeno */
+.badge-sm {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Empty state (telas vazias) */
+.empty-state {
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.empty-state-icon {
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+  margin-bottom: var(--space-3);
+}
+
+.empty-state-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state-text {
+  color: var(--color-text-secondary);
+  opacity: 0.7;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Preview summary box */
+.preview-summary {
+  background: var(--color-background);
+  border-radius: var(--border-radius-medium);
+  padding: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* ===================================
+   Loading States - Overlays e Banners
+   Documentação: docs/LOADING_STATES.md
+   =================================== */
+
+/* Loading overlay para cards/containers */
+.loading-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: var(--color-surface-card);
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-radius: var(--border-radius-medium);
+}
+
+.htmx-request .loading-overlay {
+  display: flex;
+}
+
+.htmx-request .card-content {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Loading banner para formulários */
+.form-loading-banner {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
+  border-radius: var(--border-radius-medium);
+  color: var(--color-info-text);
+  margin-top: var(--space-3);
+}
+
+.htmx-request .form-loading-banner {
+  display: flex;
+}
+
+/* Container precisa ser relative para overlay funcionar */
+.card-with-overlay {
+  position: relative;
+}

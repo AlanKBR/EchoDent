@@ -1,0 +1,22 @@
+<!-- htmlhint doctype-first:false -->
+{# Toast de Desfazer (Rollback) - Fase 4.2 #}
+{# Este componente exibe um toast após salvar configurações, permitindo desfazer a alteração #}
+
+<div id="undoToast" class="undo-toast hidden">
+  <div class="undo-toast-content">
+    <span class="undo-toast-icon">↩️</span>
+    <div class="undo-toast-message">
+      <strong>Configurações atualizadas!</strong>
+      <p class="undo-toast-subtitle">Você tem <span id="undoTimer">30</span>s para desfazer</p>
+    </div>
+    <button id="undoButton" class="undo-toast-button">
+      Desfazer
+    </button>
+    <button id="dismissToast" class="undo-toast-close">&times;</button>
+  </div>
+  <div class="undo-toast-progress">
+    <div id="undoProgressBar" class="undo-toast-progress-bar"></div>
+  </div>
+</div>
+
+{# estilos e scripts movidos para arquivos estáticos (css/undo_toast.css e js/undo_toast.js) #}

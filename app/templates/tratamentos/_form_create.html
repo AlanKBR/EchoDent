@@ -1,0 +1,105 @@
+{# Modal de Criação de Tratamento (HTMX) #}
+{# Usa componentes globais de modal definidos em global.css #}
+
+<div class="modal fade show" id="create-modal">
+    <div class="modal-dialog modal-dialog-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Novo Tratamento
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        aria-label="Fechar"
+                        onclick="document.getElementById('modal-container').innerHTML=''">&times;</button>
+            </div>
+
+            <form method="POST" action="{{ url_for('tratamentos_bp.create') }}">
+                <div class="modal-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3);">
+                        <div>
+                            <label for="nome" class="form-label">Nome do Procedimento <span class="text-danger">*</span></label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="nome"
+                                   name="nome"
+                                   required
+                                   maxlength="200"
+                                   placeholder="Ex: Limpeza Completa">
+                        </div>
+
+                        <div>
+                            <label for="codigo" class="form-label">Código</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="codigo"
+                                   name="codigo"
+                                   maxlength="50"
+                                   placeholder="Ex: LIMP-001">
+                            <small class="text-muted">Opcional. Código interno de referência.</small>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3);">
+                        <div>
+                            <label for="categoria" class="form-label">Categoria <span class="text-danger">*</span></label>
+                            <select class="form-select" id="categoria" name="categoria" required>
+                                <option value="">Selecione...</option>
+                                {% for cat in categorias %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="valor_padrao" class="form-label">Valor Padrão (R$) <span class="text-danger">*</span></label>
+                            <input type="number"
+                                   class="form-control"
+                                   id="valor_padrao"
+                                   name="valor_padrao"
+                                   required
+                                   min="0"
+                                   step="0.01"
+                                   placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: var(--space-3);">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <textarea class="form-control"
+                                  id="descricao"
+                                  name="descricao"
+                                  rows="3"
+                                  placeholder="Descrição detalhada do procedimento (opcional)"></textarea>
+                    </div>
+
+                    <div class="alert alert-info" style="margin-bottom: 0;">
+                        <small>
+                            <strong>💡 Dica:</strong> Este procedimento ficará disponível no catálogo global da clínica.
+                            Você poderá ajustar preços individualmente ao adicionar em planos de tratamento.
+                        </small>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="btn btn-secondary"
+                            onclick="document.getElementById('modal-container').innerHTML=''">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Criar Tratamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop show"></div>

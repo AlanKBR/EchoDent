@@ -1,4 +1,30 @@
 document.addEventListener('DOMContentLoaded', function () {
+    // Mitigação adicional: alguns navegadores podem restaurar foco
+    // no campo de busca global (header) ao entrar na página Agenda.
+    // Garantimos blur explícito nos primeiros ~300ms pós-load.
+    try {
+        const headerSearch = document.querySelector('.global-search-input');
+        if (headerSearch) {
+            // Se já está focado logo no DOMContentLoaded, desfocar e limpar.
+            if (document.activeElement === headerSearch) {
+                headerSearch.blur();
+                headerSearch.value = '';
+            }
+            // Segundo tick (restauração tardia ou bfcache):
+            setTimeout(() => {
+                if (document.activeElement === headerSearch) {
+                    headerSearch.blur();
+                    headerSearch.value = '';
+                }
+            }, 150);
+            // Terceiro tick para navegadores mais lentos:
+            setTimeout(() => {
+                if (document.activeElement === headerSearch) {
+                    headerSearch.blur();
+                }
+            }, 300);
+        }
+    } catch (e) { /* noop */ }
     // Helper to append a cache-busting version to static asset URLs
     function assetUrl(path) {
         try {
@@ -11,6 +37,28 @@ document.addEventListener('DOMContentLoaded', function () {
             return path + sep + 'v=' + Date.now();
         }
     }
+    // ===== UTC Conversion Helper (AGENTS.MD §9.1 Compliance) =====
+    /**
+     * Converte uma Date local (do navegador) para string ISO UTC.
+     * Compatível com a expectativa do backend (AGENTS.MD §9.1).
+     *
+     * @param {Date|null} date - Data local do navegador
+     * @param {boolean} allDay - Se true, retorna 'YYYY-MM-DD' (sem horário)
+     * @returns {string|null} - String ISO UTC (ex: "2025-11-07T18:00:00Z") ou null
+     */
+    function toUTC(date, allDay = false) {
+        if (!date) return null;
+        if (allDay) {
+            // Para eventos de dia inteiro, retornar apenas YYYY-MM-DD
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        // Para eventos com hora, usar toISOString() que retorna UTC com 'Z'
+        return date.toISOString(); // Ex: "2025-11-07T18:00:00.000Z"
+    }
+
     Promise.all([
         fetch(assetUrl('/static/agenda/event-popover.html')).then(res => res.text()),
         fetch(assetUrl('/static/agenda/event-contextmenu.html')).then(res => res.text()),
@@ -663,6 +711,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // Fit the calendar to its container which is sized by CSS to the viewport
             height: '100%',
             initialView: 'timeGridWeek',
+            // Desabilitar renderização automática de horário (usamos eventContent customizado)
+            displayEventTime: false,
             // Garantir 24h em toda a UI do FullCalendar
             eventTimeFormat: {
                 hour: '2-digit',
@@ -822,46 +872,83 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Show range only when end exists; else just start
                     return endStr ? `${startStr} – ${endStr}` : startStr;
                 }
-                // Semana: em níveis compactos, preservar título (compact) e mostrar só hora (ultra)
+                // Semana: estilo Google Calendar - nome em negrito, horário sem negrito, descrição com wrap
                 if (arg.view.type === 'timeGridWeek') {
                     const isAllDay = arg.event.allDay;
-                    const timeStr = buildTimeRange(arg.event);
                     const title = arg.event.title || '';
-                    // Ultra: apenas horário (evitar elipse em largura extrema)
-                    if (!isAllDay && level === 'ultra') {
-                        const onlyTime = timeStr || '';
-                        const html = `<div class=\"fc-event-main-custom\">${onlyTime}</div>`;
-                        return { html };
-                    }
-                    // Compact: priorizar o título e ocultar intervalo; evita elipses mantendo contexto
-                    if (!isAllDay && level === 'compact') {
-                        const html = `<div class=\"fc-event-main-custom\"><span class=\"fc-event-title\">${title}</span></div>`;
-                        return { html };
-                    }
+
+                    // Extrair todas as linhas de notes (para descrição com múltiplas linhas)
+                    const notes = (arg.event.extendedProps && arg.event.extendedProps.notes) ? arg.event.extendedProps.notes : '';
+                    const notesLines = notes.split('\n').filter(line => line.trim()).join('\n');
+
                     // calcular duração em minutos
                     let durationMin = 0;
                     if (!isAllDay && arg.event.start && arg.event.end) {
                         durationMin = Math.max(0, Math.round((arg.event.end.getTime() - arg.event.start.getTime()) / 60000));
                     } else if (!isAllDay && arg.event.start && !arg.event.end) {
-                        // sem fim explícito: assumir 60min, comum em consultas
                         durationMin = 60;
                     }
-                    let html;
-                    if (durationMin > 30) {
-                        // duas linhas: título em cima (negrito), intervalo embaixo
-                        const timeLine = timeStr ? `<div class=\"fc-event-time-start\">${timeStr}</div>` : '';
-                        html = `<div class=\"fc-event-main-custom two-line\"><div class=\"fc-event-title\">${title}</div>${timeLine}</div>`;
-                    } else {
-                        // linha única: Título + intervalo
-                        const timeInline = timeStr ? `<span class=\"fc-event-time-start\"> ${timeStr}</span>` : '';
-                        html = `<div class=\"fc-event-main-custom\"><span class=\"fc-event-title\">${title}</span>${timeInline}</div>`;
+
+                    // Criar elementos DOM manualmente para sobrescrever completamente o conteúdo do FullCalendar
+                    const container = document.createElement('div');
+                    container.className = 'fc-event-main-custom';
+
+                    // Eventos all-day: apenas título (e descrição se houver)
+                    if (isAllDay) {
+                        const titleEl = document.createElement('div');
+                        titleEl.className = 'fc-event-title';
+                        titleEl.textContent = title;
+                        container.appendChild(titleEl);
+
+                        if (notesLines) {
+                            const descEl = document.createElement('div');
+                            descEl.className = 'fc-event-description';
+                            descEl.textContent = notesLines;
+                            container.appendChild(descEl);
+                        }
+                    }
+                    // Eventos muito curtos (≤30min): inline "Nome HH:MM" (sem vírgula!)
+                    else if (durationMin <= 30) {
+                        container.classList.add('short');
+
+                        const titleEl = document.createElement('span');
+                        titleEl.className = 'fc-event-title';
+                        titleEl.textContent = title;
+                        container.appendChild(titleEl);
+
+                        const timeEl = document.createElement('span');
+                        timeEl.className = 'fc-event-time';
+                        const startTime = fmtHHMM(arg.event.start);
+                        timeEl.textContent = `, ${startTime}`; // vírgula + espaço para separação visual
+                        container.appendChild(timeEl);
+                    }
+                    // Eventos maiores (>30min): múltiplas linhas com range completo
+                    else {
+                        container.classList.add('multi-line');
+
+                        const titleEl = document.createElement('div');
+                        titleEl.className = 'fc-event-title';
+                        titleEl.textContent = title;
+                        container.appendChild(titleEl);
+
+                        const timeEl = document.createElement('div');
+                        timeEl.className = 'fc-event-time';
+                        const startTime = fmtHHMM(arg.event.start);
+                        const endTime = arg.event.end ? fmtHHMM(arg.event.end) : '';
+                        timeEl.textContent = endTime ? `${startTime} – ${endTime}` : startTime;
+                        container.appendChild(timeEl);
+
+                        if (notesLines) {
+                            const descEl = document.createElement('div');
+                            descEl.className = 'fc-event-description';
+                            descEl.textContent = notesLines;
+                            container.appendChild(descEl);
+                        }
                     }
 
-                    return {
-                        html
-                    };
+                    return { domNodes: [container] };
                 }
-                // Dia: Nome (negrito) - descrição do evento
+                // Dia: Nome (negrito) - descrição do evento (primeira linha de notes)
                 if (arg.view.type === 'timeGridDay') {
                     const title = arg.event.title || '';
                     // Em ultra-compact, somente hora para eventos com hora
@@ -871,6 +958,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         return { html };
                     }
                     const notes = (arg.event.extendedProps && arg.event.extendedProps.notes) ? arg.event.extendedProps.notes : '';
+                    // Extrair primeira linha de notes (até \n ou até 60 caracteres)
+                    let firstLineNotes = notes.split('\n')[0].trim();
+                    if (firstLineNotes.length > 60) {
+                        firstLineNotes = firstLineNotes.substring(0, 60) + '...';
+                    }
                     // calcular duração em minutos (para escalar fonte)
                     let durationMin = 0;
                     if (!arg.event.allDay && arg.event.start) {
@@ -883,18 +975,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     let sizeClass = '';
                     if (durationMin >= 120) sizeClass = ' size-large';
                     else if (durationMin >= 60) sizeClass = ' size-medium';
-                    const sep = notes ? ' - ' : '';
-                    const html = `<div class="fc-event-main-custom${sizeClass}"><span class="fc-event-title fw-bold">${title}</span>${sep}<span class="fc-event-notes">${notes}</span></div>`;
+                    // Renderizar: sempre mostrar título, mostrar descrição se houver espaço (duração >= 45min)
+                    let descriptionPart = '';
+                    if (firstLineNotes && durationMin >= 45) {
+                        descriptionPart = ` <span class="fc-event-notes" style="color: rgba(255,255,255,0.85); font-weight: 400;">- ${firstLineNotes}</span>`;
+                    }
+                    const html = `<div class="fc-event-main-custom${sizeClass}"><span class="fc-event-title" style="font-weight: 700;">${title}</span>${descriptionPart}</div>`;
                     return {
                         html
                     };
                 }
-                // Lista: Nome (negrito) - descrição
+                // Lista: Nome (negrito) - descrição (primeira linha de notes)
                 if (arg.view.type && arg.view.type.startsWith('list')) {
                     const title = arg.event.title || '';
                     const notes = (arg.event.extendedProps && arg.event.extendedProps.notes) ? arg.event.extendedProps.notes : '';
-                    const sep = notes ? ' - ' : '';
-                    const html = `<span class="fc-event-title fw-bold">${title}</span>${sep}<span class="fc-event-notes">${notes}</span>`;
+                    // Extrair primeira linha
+                    let firstLineNotes = notes.split('\n')[0].trim();
+                    if (firstLineNotes.length > 80) {
+                        firstLineNotes = firstLineNotes.substring(0, 80) + '...';
+                    }
+                    const sep = firstLineNotes ? ' - ' : '';
+                    const html = `<span class="fc-event-title" style="font-weight: 700;">${title}</span>${sep}<span class="fc-event-notes" style="color: var(--color-text-secondary);">${firstLineNotes}</span>`;
                     return {
                         html
                     };
@@ -1186,17 +1287,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     const title = document.getElementById('popoverEventTitle').value;
                     let start, end;
                     if (selIsAllDay) {
+                        // §9.1 Compliance: Eventos de dia inteiro já são YYYY-MM-DD (correto)
                         start = document.getElementById('popoverEventStartDate').value;
                         end = document.getElementById('popoverEventEndDate').value;
                         // UI mostra fim inclusivo; para o backend/FullCalendar precisamos enviar fim exclusivo
                         // Se usuário não preencher, usar start + 1 dia
                     } else {
-                        start = document.getElementById('popoverEventStart').value;
-                        end = document.getElementById('popoverEventEnd').value;
-                        if (!end && start) {
-                            const dt = new Date(start);
-                            dt.setHours(dt.getHours() + 1);
-                            end = dt.toISOString().slice(0, 16);
+                        // §9.1 Compliance: Converter datetime local para UTC
+                        const startInput = document.getElementById('popoverEventStart').value;
+                        const endInput = document.getElementById('popoverEventEnd').value;
+
+                        start = toUTC(new Date(startInput), false);
+
+                        if (endInput) {
+                            end = toUTC(new Date(endInput), false);
+                        } else if (startInput) {
+                            // Aplicar duração padrão se end não fornecido
+                            const saved = parseInt(localStorage.getItem('defaultEventDurationMin') || '60', 10);
+                            const dur = isFinite(saved) && saved > 0 ? saved : 60;
+                            const dt = new Date(startInput);
+                            dt.setMinutes(dt.getMinutes() + dur);
+                            end = toUTC(dt, false);
                         }
                     }
                     const selDent = (function () {
@@ -1225,56 +1336,61 @@ document.addEventListener('DOMContentLoaded', function () {
                                 }
                             }
                         }
-                        fetch('/api/agenda/events', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                title: title,
-                                start: start,
-                                end: (function () {
-                                    if (selIsAllDay) return endToSend;
-                                    if (end) return end;
-                                    // aplicar duração padrão ao salvar se vazio (caso com hora)
-                                    try {
-                                        const saved = parseInt(localStorage.getItem('defaultEventDurationMin') || '60', 10);
-                                        const dur = isFinite(saved) && saved > 0 ? saved : 60;
-                                        const dt = new Date(start);
-                                        dt.setMinutes(dt.getMinutes() + dur);
-                                        return formatLocalYmdHm(dt);
-                                    } catch (e) {
-                                        return end;
-                                    }
-                                })(),
-                                notes: document.getElementById('popoverEventDesc').value || '',
-                                dentista_id: selDent
+
+                        // QOL 1: Loading state
+                        const submitBtn = document.getElementById('eventPopoverForm')?.querySelector('button[type="submit"]');
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            const originalText = submitBtn.innerHTML;
+                            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Salvando...';
+
+                            fetch('/api/agenda/events', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    title: title,
+                                    start: start,
+                                    end: selIsAllDay ? endToSend : end,
+                                    notes: document.getElementById('popoverEventDesc').value || '',
+                                    dentista_id: selDent
+                                })
                             })
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.status === 'success' && data.event) {
-                                    try {
-                                        // Adiciona imediatamente no calendário e no cache compartilhado
-                                        if (selIsAllDay) {
-                                            const ev = { ...data.event, allDay: true };
-                                            calendar.addEvent(ev);
-                                            addEventToCache(ev);
-                                        } else {
-                                            calendar.addEvent(data.event);
-                                            addEventToCache(data.event);
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.status === 'success' && data.event) {
+                                        try {
+                                            // Adiciona imediatamente no calendário e no cache compartilhado
+                                            if (selIsAllDay) {
+                                                const ev = { ...data.event, allDay: true };
+                                                calendar.addEvent(ev);
+                                                addEventToCache(ev);
+                                            } else {
+                                                calendar.addEvent(data.event);
+                                                addEventToCache(data.event);
+                                            }
+                                            try { if (window.__miniCalendar) window.__miniCalendar.refetchEvents(); } catch (e) { }
+                                            try { showToast('Evento criado.', 'success', 1600); } catch (e) { }
+                                        } catch (e) {
+                                            // Fallback: força recarregar eventos
+                                            try { calendar.refetchEvents(); } catch (_) { }
                                         }
-                                        try { if (window.__miniCalendar) window.__miniCalendar.refetchEvents(); } catch (e) { }
-                                        try { showToast('Evento criado.', 'success', 1600); } catch (e) { }
-                                    } catch (e) {
-                                        // Fallback: força recarregar eventos
-                                        try { calendar.refetchEvents(); } catch (_) { }
+                                        closePopover();
+                                    } else {
+                                        alert('Erro ao adicionar evento!');
                                     }
-                                    closePopover();
-                                } else {
+                                })
+                                .catch(() => {
                                     alert('Erro ao adicionar evento!');
-                                }
-                            });
+                                })
+                                .finally(() => {
+                                    if (submitBtn) {
+                                        submitBtn.disabled = false;
+                                        submitBtn.innerHTML = originalText;
+                                    }
+                                });
+                        }
                     }
                 };
                 calendar.unselect();
@@ -1555,6 +1671,41 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('closeDetailPopoverBtn').onclick = closePopover;
             },
             eventDidMount: function (info) {
+                // QOL 2: Tooltips enriquecidos (§QOL)
+                try {
+                    const title = info.event.title || '';
+                    const notes = (info.event.extendedProps && info.event.extendedProps.notes) || '';
+                    const start = info.event.start;
+                    const end = info.event.end;
+
+                    // Formatar data/hora para pt-BR
+                    const fmtDate = new Intl.DateTimeFormat('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: info.event.allDay ? undefined : '2-digit',
+                        minute: info.event.allDay ? undefined : '2-digit',
+                        hour12: false
+                    });
+
+                    const startStr = start ? fmtDate.format(start) : '';
+                    const endStr = end ? fmtDate.format(end) : '';
+
+                    // Montar tooltip rico
+                    let tooltipText = title;
+                    if (startStr) {
+                        tooltipText += `\n${startStr}`;
+                        if (endStr && endStr !== startStr) {
+                            tooltipText += ` - ${endStr}`;
+                        }
+                    }
+                    if (notes) {
+                        tooltipText += `\n${notes}`;
+                    }
+
+                    info.el.setAttribute('title', tooltipText);
+                } catch (e) { /* noop */ }
+
                 // marcar elemento com id para filtros de busca
                 try {
                     if (info && info.el && info.event && info.event.id != null) {
@@ -1798,12 +1949,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 } catch (e) { }
             },
             eventDrop: function (info) {
-                let start = info.event.startStr;
-                let end = info.event.endStr;
-                if (info.event.allDay) {
-                    if (start && start.length > 10) start = start.slice(0, 10);
-                    if (end && end.length > 10) end = end.slice(0, 10);
-                }
+                // §9.1 Compliance: Converter para UTC antes de enviar
+                const allDay = info.event.allDay;
+                const start = toUTC(info.event.start, allDay);
+                const end = toUTC(info.event.end, allDay);
+
                 fetch(`/api/agenda/events/${info.event.id}`, {
                     method: 'PATCH',
                     headers: {
@@ -1827,12 +1977,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
             },
             eventResize: function (info) {
-                let start = info.event.startStr;
-                let end = info.event.endStr;
-                if (info.event.allDay) {
-                    if (start && start.length > 10) start = start.slice(0, 10);
-                    if (end && end.length > 10) end = end.slice(0, 10);
-                }
+                // §9.1 Compliance: Converter para UTC antes de enviar
+                const allDay = info.event.allDay;
+                const start = toUTC(info.event.start, allDay);
+                const end = toUTC(info.event.end, allDay);
+
                 fetch(`/api/agenda/events/${info.event.id}`, {
                     method: 'PATCH',
                     headers: {
@@ -2179,7 +2328,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 settingsMenu.classList.remove('is-open');
             });
         }
-        
+
 
         // ===== Busca =====
         const searchStateKey = 'calendarSearchQuery';
@@ -2229,7 +2378,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 searchMenu.classList.remove('is-open');
             });
         }
-        
+
         // Busca server-side: alterna para List e ajusta range para cobrir todos resultados
         function gotoListCoveringResults(qstr) {
             const ids = loadSelectedDentists();
@@ -2307,7 +2456,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
         wireSearchMenu();
-        // Removido: injeção de extraParams em eventSources/events. 
+        // Removido: injeção de extraParams em eventSources/events.
         // Motivo: nossa função events() já inclui a query (q) ao montar a URL,
         // e mutar opções em runtime pode causar erros em algumas versões do FullCalendar.
 

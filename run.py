@@ -1,5 +1,5 @@
-import os
 import importlib
+import os
 
 from app import create_app, db
 
@@ -14,12 +14,14 @@ try:
         lambda *_a, **_k: False,  # fallback no-op
     )
 except Exception:
+
     def load_dotenv(*_args, **_kwargs):  # type: ignore
         return False
 
+
 load_dotenv()
 
-app = create_app(os.getenv('FLASK_CONFIG') or 'default')
+app = create_app(os.getenv("FLASK_CONFIG") or "default")
 
 
 @app.shell_context_processor
@@ -28,5 +30,5 @@ def make_shell_context():
     return dict(db=db)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)

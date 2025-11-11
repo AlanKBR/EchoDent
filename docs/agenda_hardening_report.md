@@ -61,4 +61,3 @@ These match our usage. No external assets added; offline-first preserved.
 - Build/Import: PASS
 - Tests: PASS (pytest)
 - Lint/Typecheck: N/A (Python lint not enforced here; JS changes comply with project style).
-

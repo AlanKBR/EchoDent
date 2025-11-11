@@ -112,4 +112,3 @@ This short, evolving note tracks UI/UX improvements for Agenda and friends. It f
 - Narrow layout: Open DevTools, shrink viewport; week events render start-only time labels; no broken layout.
 - All‑day creation by drag: In week view, drag in the all‑day row for a single day → popover shows date-only; after save, event appears in the all‑day lane.
 - Truncation: On tight slots, verify no ellipses in time labels; titles remain readable.
-

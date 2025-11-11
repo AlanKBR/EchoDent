@@ -28,3 +28,9 @@ instance/
 weasyprint.exe
 *.dll
 *.pdb
+
+# Logs and runtime outputs
+*.log
+logs/
+flask_*.log
+flask*.log

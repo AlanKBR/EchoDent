@@ -1,18 +1,18 @@
-
-import sys
 import os
+import sys
 
-from sqlalchemy import text
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 # Ensure app package import works when running directly
 sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 )
 
-from app import create_app, db  # noqa: E402
-from app.models import Usuario, RoleEnum  # noqa: E402
 from werkzeug.security import generate_password_hash  # noqa: E402
+
+from app import create_app, db  # noqa: E402
+from app.models import RoleEnum, Usuario  # noqa: E402
 
 
 def main():
@@ -31,10 +31,10 @@ def main():
     except Exception:
         pass
 
-    app = create_app('default')
+    app = create_app("default")
     with app.app_context():
         # Resolve tenant schema (default for now); allow override via env
-        tenant_schema = os.environ.get('ECHO_TENANT_SCHEMA', 'tenant_default')
+        tenant_schema = os.environ.get("ECHO_TENANT_SCHEMA", "tenant_default")
 
         # Ensure schema exists and set search_path for this session
         try:
@@ -58,23 +58,23 @@ def main():
         # Upsert-like behavior for the admin user
         u = (
             db.session.query(Usuario)
-            .filter(Usuario.username == 'admin')
+            .filter(Usuario.username == "admin")
             .one_or_none()
         )
         if not u:
             u = Usuario()
-            u.username = 'admin'
+            u.username = "admin"
             u.role = RoleEnum.ADMIN
-            u.nome_completo = 'Administrador'
-            print('created admin user: admin/admin123')
+            u.nome_completo = "Administrador"
+            print("created admin user: admin/admin123")
         else:
-            print('admin user already exists, resetting password to admin123')
+            print("admin user already exists, resetting password to admin123")
 
-        u.password_hash = generate_password_hash('admin123')
+        u.password_hash = generate_password_hash("admin123")
         db.session.add(u)
         db.session.commit()
-        print('admin password set to admin123')
+        print("admin password set to admin123")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

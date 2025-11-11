@@ -18,3 +18,16 @@ repos:
     rev: 6.0.0
     hooks:
     -   id: flake8
+-
+    repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+    -   id: ruff
+        name: ruff (lint with autofix)
+        args: ["--fix"]
+-   repo: https://github.com/djlint/djLint
+    rev: v1.34.0
+    hooks:
+    -   id: djlint
+        name: djlint (jinja lint)
+        args: ["--profile=jinja", "--reformat"]

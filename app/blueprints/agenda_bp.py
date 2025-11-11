@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from flask import Blueprint, render_template, jsonify, request, abort
+from flask import Blueprint, abort, jsonify, render_template, request
 
 from .. import db
-from ..models import CalendarEvent, Usuario, RoleEnum
-from ..services.agenda_service import parse_iso_to_utc, format_dt_iso
-from ..services import agendamento_service
-from ..services import holiday_service
+from ..models import CalendarEvent, RoleEnum, Usuario
+from ..services import agendamento_service, holiday_service
+from ..services.agenda_service import format_dt_iso, parse_iso_to_utc
 
 agenda_bp = Blueprint("agenda_bp", __name__)
 
@@ -87,11 +86,13 @@ def api_list_events():
     if dentist_ids:
         # Include events matching selected dentists
         q = q.filter(
-            db.or_(CalendarEvent.dentista_id.in_(dentist_ids),
-                   db.and_(
-                       db.literal(include_unassigned in {"1", "true", "True"}),
-                       CalendarEvent.dentista_id.is_(None)
-                   ))
+            db.or_(
+                CalendarEvent.dentista_id.in_(dentist_ids),
+                db.and_(
+                    db.literal(include_unassigned in {"1", "true", "True"}),
+                    CalendarEvent.dentista_id.is_(None),
+                ),
+            )
         )
     else:
         # No dentists selected -> return only unassigned if flagged;
@@ -139,8 +140,8 @@ def api_events_search_range():
     """Retorna min/max e contagem para busca (q + filtros)."""
     dentists_param = (request.args.get("dentists") or "").strip()
     include_unassigned_param = (
-        (request.args.get("include_unassigned") or "").strip()
-    )
+        request.args.get("include_unassigned") or ""
+    ).strip()
     qstr = (request.args.get("q") or "").strip()
 
     dentist_ids: list[int] = []

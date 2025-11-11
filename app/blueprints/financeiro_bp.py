@@ -1,39 +1,29 @@
+from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
 
-
-
-from flask import (
-    Blueprint,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    flash,
-)
-from flask_login import login_required, current_user
 from app import db  # noqa: F401 (import retained for potential future use)
-from app.services.paciente_service import get_paciente_by_id
 from app.services.financeiro_service import (
-    get_all_procedimentos,
-    get_procedimento_by_id,
-    create_plano,
-    get_plano_by_id,
-    approve_plano,
     add_lancamento,
-    create_recibo_avulso,
     add_lancamento_ajuste,
-    get_saldo_plano_calculado,
-    gerar_parcelamento_previsto,
-    get_carne_detalhado,
-    update_plano_proposto,
     add_lancamento_estorno,
+    approve_plano,
+    create_plano,
+    create_recibo_avulso,
+    gerar_parcelamento_previsto,
+    get_all_procedimentos,
+    get_carne_detalhado,
+    get_plano_by_id,
+    get_procedimento_by_id,
+    get_saldo_plano_calculado,
+    update_plano_proposto,
 )
+from app.services.paciente_service import get_paciente_by_id
 
 financeiro_bp = Blueprint("financeiro_bp", __name__, url_prefix="/financeiro")
 
+
 # Rotas extras adicionadas
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/aprovar", methods=["POST"]
-)
+@financeiro_bp.route("/plano/<int:plano_id>/aprovar", methods=["POST"])
 @login_required
 def aprovar_plano(plano_id: int):
     desconto = request.form.get("desconto", 0)
@@ -46,18 +36,21 @@ def aprovar_plano(plano_id: int):
         flash("Plano aprovado com sucesso.", "success")
     except ValueError as e:
         flash(str(e), "danger")
-    return render_template("financeiro/_plano_card.html", plano=get_plano_by_id(plano_id))
+    return render_template(
+        "financeiro/_plano_card.html", plano=get_plano_by_id(plano_id)
+    )
 
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/pagar", methods=["POST"]
-)
+
+@financeiro_bp.route("/plano/<int:plano_id>/pagar", methods=["POST"])
 @login_required
 def pagar_plano(plano_id: int):
     valor = request.form.get("valor")
     metodo = request.form.get("metodo_pagamento")
     if not valor or not metodo:
         flash("Informe valor e método de pagamento.", "danger")
-        return redirect(url_for("financeiro_bp.plano_detalhe", plano_id=plano_id))
+        return redirect(
+            url_for("financeiro_bp.plano_detalhe", plano_id=plano_id)
+        )
     try:
         lanc = add_lancamento(
             plano_id, valor, metodo, usuario_id=getattr(current_user, "id", 0)
@@ -72,33 +65,34 @@ def pagar_plano(plano_id: int):
 
 
 # Rota de Estorno de Lançamento
-@financeiro_bp.route("/lancamento/<int:lancamento_id>/estornar", methods=["POST"])
+@financeiro_bp.route(
+    "/lancamento/<int:lancamento_id>/estornar", methods=["POST"]
+)
 @login_required
 def estornar_lancamento(lancamento_id):
     motivo_estorno = request.form.get("motivo_estorno", "").strip()
     if not motivo_estorno:
         return render_template(
             "components/htmx_error.html",
-            error_message="Motivo do estorno é obrigatório."
+            error_message="Motivo do estorno é obrigatório.",
         ), 400
     try:
         resultado = add_lancamento_estorno(
             lancamento_original_id=lancamento_id,
             motivo_estorno=motivo_estorno,
-            usuario_id=current_user.id
+            usuario_id=current_user.id,
         )
     except ValueError as e:
         # Trava de Caixa: Caixa fechado
         return render_template(
-            "components/htmx_error.html",
-            error_message=str(e)
+            "components/htmx_error.html", error_message=str(e)
         ), 400
     # Sucesso: re-renderiza a lista de lançamentos do plano
     plano = get_plano_by_id(resultado.plano_id)
 
-    return render_template("pacientes/_lista_lancamentos.html", plano=plano), 200
-
-
+    return render_template(
+        "pacientes/financeiro/_lista_lancamentos.html", plano=plano
+    ), 200
 
 
 @financeiro_bp.route("/novo_plano/<int:paciente_id>", methods=["GET"])  # shell
@@ -195,19 +189,13 @@ def plano_detalhe(plano_id: int):  # pragma: no cover - thin controller
     )
 
 
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/ajuste/form", methods=["GET"]
-)
+@financeiro_bp.route("/plano/<int:plano_id>/ajuste/form", methods=["GET"])
 @login_required
 def ajuste_form(plano_id: int):  # pragma: no cover - thin controller
-    return render_template(
-        "financeiro/_ajuste_form.html", plano_id=plano_id
-    )
+    return render_template("financeiro/_ajuste_form.html", plano_id=plano_id)
 
 
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/ajuste", methods=["POST"]
-)
+@financeiro_bp.route("/plano/<int:plano_id>/ajuste", methods=["POST"])
 @login_required
 def ajustar_plano(plano_id: int):  # pragma: no cover - thin controller
     valor = request.form.get("valor")
@@ -225,14 +213,10 @@ def ajustar_plano(plano_id: int):  # pragma: no cover - thin controller
         flash("Ajuste registrado com sucesso.", "success")
     except ValueError as e:
         flash(str(e), "danger")
-    return redirect(
-        url_for("financeiro_bp.plano_detalhe", plano_id=plano_id)
-    )
+    return redirect(url_for("financeiro_bp.plano_detalhe", plano_id=plano_id))
 
 
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/gerar_parcelas", methods=["POST"]
-)
+@financeiro_bp.route("/plano/<int:plano_id>/gerar_parcelas", methods=["POST"])
 @login_required
 def gerar_parcelas(plano_id: int):  # pragma: no cover - thin controller
     num_raw = request.form.get("num_parcelas")
@@ -253,24 +237,22 @@ def gerar_parcelas(plano_id: int):  # pragma: no cover - thin controller
         # Após gerar, retornar o fragmento com o carnê detalhado
         lista = get_carne_detalhado(plano_id)
         return render_template(
-            "pacientes/_carne_view.html", lista_retorno=lista
+            "pacientes/financeiro/_carne_view.html", lista_retorno=lista
         )
     except Exception as e:  # noqa: BLE001 - retornar erro ao cliente
         return str(e), 400
 
 
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/carne_view", methods=["GET"]
-)
+@financeiro_bp.route("/plano/<int:plano_id>/carne_view", methods=["GET"])
 @login_required
 def carne_view(plano_id: int):  # pragma: no cover - thin controller
     lista = get_carne_detalhado(plano_id)
-    return render_template("pacientes/_carne_view.html", lista_retorno=lista)
+    return render_template(
+        "pacientes/financeiro/_carne_view.html", lista_retorno=lista
+    )
 
 
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/editar", methods=["GET"]
-)
+@financeiro_bp.route("/plano/<int:plano_id>/editar", methods=["GET"])
 @login_required
 def editar_plano_form(plano_id: int):  # pragma: no cover - thin controller
     plano = get_plano_by_id(plano_id)
@@ -279,9 +261,7 @@ def editar_plano_form(plano_id: int):  # pragma: no cover - thin controller
     return render_template("financeiro/_plano_edit_form.html", plano=plano)
 
 
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/editar", methods=["POST"]
-)
+@financeiro_bp.route("/plano/<int:plano_id>/editar", methods=["POST"])
 @login_required
 def editar_plano(plano_id: int):  # pragma: no cover - thin controller
     # Reconstruir items_data a partir do request.form: item-<n>-id|nome|valor
@@ -310,6 +290,7 @@ def editar_plano(plano_id: int):  # pragma: no cover - thin controller
         if not plano_atual:
             return "Plano não encontrado.", 404
         from app.models import ItemPlano as _Item
+
         itens_ordenados = (
             db.session.query(_Item)
             .filter(_Item.plano_id == plano_atual.id)
@@ -331,6 +312,7 @@ def editar_plano(plano_id: int):  # pragma: no cover - thin controller
         # Fallback: tentar aplicar edição básica no primeiro item do plano
         try:
             from app.models import ItemPlano as _Item
+
             plano_fb = get_plano_by_id(plano_id)
             if not plano_fb:
                 return "Plano não encontrado.", 404
@@ -361,6 +343,7 @@ def editar_plano(plano_id: int):  # pragma: no cover - thin controller
                     .scalar()
                 )
                 from decimal import Decimal
+
                 plano_fb.subtotal = Decimal(str(soma))
                 plano_fb.valor_total = Decimal(str(soma))
                 db.session.add(plano_fb)
@@ -378,9 +361,7 @@ def editar_plano(plano_id: int):  # pragma: no cover - thin controller
     return render_template("financeiro/_plano_card.html", plano=plano)
 
 
-@financeiro_bp.route(
-    "/plano/<int:plano_id>/card", methods=["GET"]
-)
+@financeiro_bp.route("/plano/<int:plano_id>/card", methods=["GET"])
 @login_required
 def plano_card(plano_id: int):  # pragma: no cover - thin controller
     plano = get_plano_by_id(plano_id)
@@ -415,8 +396,11 @@ def recibo_avulso(paciente_id: int):  # pragma: no cover - thin controller
         )
     try:
         create_recibo_avulso(
-            paciente_id, dentista_id, valor, motivo,
-            usuario_id=getattr(current_user, "id", 0)
+            paciente_id,
+            dentista_id,
+            valor,
+            motivo,
+            usuario_id=getattr(current_user, "id", 0),
         )
         flash("Recibo avulso registrado com sucesso.", "success")
     except ValueError as e:

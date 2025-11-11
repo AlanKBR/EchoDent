@@ -1,0 +1,40 @@
+# Ruff configuration for EchoDent
+# Focus on auto-fixable, performance, modernization, and safety rules.
+line-length = 79
+indent-width = 4
+
+# Enable ruff formatting later if desired (currently keep Black)
+# Uncomment below to migrate from Black:
+# [format]
+# quote-style = "preserve"
+
+[lint]
+select = [
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "W",  # pycodestyle warnings
+  "B",  # bugbear
+  "UP", # pyupgrade
+  "I",  # isort (imports ordering)
+  "C90" # complexity (mccabe)
+]
+ignore = [
+  "E203",  # Whitespace before ':' (Black compatibility)
+  "E266",  # Allow longer inline comment markers
+  "B904",  # Opt out of exception chaining enforcement for now
+  "C901",  # Do not fail pre-commit on complexity; track separately
+  "B027",  # Allow optional empty abstract methods as project convention
+]
+
+fixable = ["E", "F", "W", "B", "UP", "I"]
+
+# Exclude generated/migration/media artifacts
+exclude = [
+  "migrations/*",
+  "instance/media_storage/*",
+  "**/__pycache__/**"
+]
+
+[lint.mccabe]
+# Set complexity threshold moderately high until refactor phase
+max-complexity = 25

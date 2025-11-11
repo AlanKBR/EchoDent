@@ -1,7 +1,7 @@
 import os
 
-from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
 
 
 def _get_engine():
@@ -55,7 +55,7 @@ def test_dev_sync_db_integrity():
         )
         assert pacientes > 0, "Expected pacientes > 0 in tenant_default"
 
-    # Assert 5: a seeded table has rows (agendamentos seeded in seeder)
+        # Assert 5: a seeded table has rows (agendamentos seeded in seeder)
         agendamentos = _count(
             conn,
             "SELECT COUNT(*) FROM tenant_default.agendamentos",

@@ -1,0 +1,124 @@
+/* global_search.css - Estilos escopados para busca global (§10.3) */
+
+.global-search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 600px;
+  margin: 0 2rem;
+}
+
+.global-search-input {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background-color: var(--input-bg, #fff);
+  color: var(--text-color, #212529);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.global-search-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #0d6efd);
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.global-search-results {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  background-color: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.global-search-results:empty {
+  display: none;
+}
+
+.global-search-dropdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-result-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-light, #f0f0f0);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.search-result-item:hover,
+.search-result-item:focus {
+  background-color: var(--hover-bg, #f8f9fa);
+  outline: none;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.result-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-color, #212529);
+}
+
+.result-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.result-timestamp {
+  color: var(--text-muted, #6c757d);
+}
+
+.result-desc {
+  color: var(--primary-color, #0d6efd);
+  font-weight: 500;
+}
+
+.search-result-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted, #6c757d);
+  font-size: 0.9rem;
+}
+
+.text-muted {
+  color: var(--text-muted, #6c757d) !important;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .global-search-wrapper {
+    max-width: none;
+    margin: 0 1rem;
+  }
+
+  .global-search-input {
+    font-size: 0.95rem;
+    padding: 0.625rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .global-search-wrapper {
+    margin: 0 0.5rem;
+  }
+}

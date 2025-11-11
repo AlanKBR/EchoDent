@@ -1,0 +1,140 @@
+{% extends 'pacientes/paciente_layout.html' %}
+
+{# Tela 4: Financeiro (Extrato + Carnê) - STUB #}
+{# Conformidade: AGENTS.MD §4 (Workflow Financeiro) #}
+
+{% set active_tab = 'financeiro' %}
+
+{% block title %}Financeiro (Extrato) - {{ paciente.nome_completo }}{% endblock %}
+
+{% block page_styles %}
+{# TODO: Adicionar CSS específico do Financeiro quando implementado #}
+{% endblock %}
+
+{% block paciente_content %}
+<div class="financeiro-stub-container">
+  <div class="stub-placeholder">
+    <div class="stub-icon">💰</div>
+    <h2 class="stub-title">Tela 4: Financeiro (Extrato + Carnê)</h2>
+    <p class="stub-description">
+      Esta é uma tela placeholder (stub) para a gestão financeira do paciente.
+    </p>
+    <p class="stub-patient-info">
+      <strong>Paciente:</strong> {{ paciente.nome_completo }}<br />
+      <strong>ID:</strong> {{ paciente.id }}
+    </p>
+    <div class="stub-features">
+      <h3>Funcionalidades Planejadas (Passo 5.x):</h3>
+      <ul>
+        <li>Extrato global (<code>LancamentoFinanceiro</code>)</li>
+        <li>Carnê Cosmético (<code>ParcelaPrevista</code> + lógica dinâmica)</li>
+        <li>Saldo Devedor (cálculo "Soma Burra" em tempo real)</li>
+        <li>Crédito Disponível (saldo negativo)</li>
+        <li>Botões Admin: Ajustar Saldo, Estorno (com trava de caixa)</li>
+        <li>Ajustes via <code>AJUSET</code> (Desconto/Juros/Quitação)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* CSS Inline APENAS para o stub (remover na implementação real) */
+  .financeiro-stub-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: var(--space-4, 1rem);
+  }
+
+  .stub-placeholder {
+    text-align: center;
+    max-width: 600px;
+    padding: var(--space-6, 2rem);
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8edf2 100%);
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .stub-icon {
+    font-size: 4rem;
+    margin-bottom: var(--space-4, 1rem);
+  }
+
+  .stub-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--color-text-primary, #333333);
+    margin-bottom: var(--space-2, 0.5rem);
+  }
+
+  .stub-description {
+    font-size: 1rem;
+    color: var(--color-text-secondary, #666666);
+    margin-bottom: var(--space-4, 1rem);
+  }
+
+  .stub-patient-info {
+    font-size: 0.95rem;
+    color: var(--color-text-primary, #333333);
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: var(--space-3, 0.75rem);
+    border-radius: var(--radius-sm, 6px);
+    margin-bottom: var(--space-4, 1rem);
+  }
+
+  .stub-features {
+    text-align: left;
+    margin-top: var(--space-4, 1rem);
+  }
+
+  .stub-features h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-primary-main, #0066cc);
+    margin-bottom: var(--space-2, 0.5rem);
+  }
+
+  .stub-features ul {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .stub-features li {
+    padding: var(--space-2, 0.5rem) 0;
+    color: var(--color-text-primary, #333333);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .stub-features li:last-child {
+    border-bottom: none;
+  }
+
+  .stub-features code {
+    background-color: rgba(0, 102, 204, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+  }
+
+  /* Tema Escuro */
+  [data-theme-mode="dark"] .stub-placeholder {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+  }
+
+  [data-theme-mode="dark"] .stub-title,
+  [data-theme-mode="dark"] .stub-patient-info,
+  [data-theme-mode="dark"] .stub-features li {
+    color: var(--color-text-primary, #e0e0e0);
+  }
+
+  [data-theme-mode="dark"] .stub-description {
+    color: var(--color-text-secondary, #a0a0a0);
+  }
+
+  [data-theme-mode="dark"] .stub-patient-info {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+</style>
+{% endblock %}

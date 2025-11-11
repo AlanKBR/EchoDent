@@ -5,6 +5,10 @@ class Config:
     # Segurança
     SECRET_KEY = os.environ.get("SECRET_KEY")
 
+    # Versionamento de Assets (Cache-Busting)
+    # Incrementar manualmente a cada deploy ou usar variável de ambiente
+    ASSETS_VERSION = os.environ.get("ASSETS_VERSION", "1.0.0")
+
     # Tokens de serviços externos (opcional)
     INVERTEXTO_API_TOKEN = os.environ.get("INVERTEXTO_API_TOKEN")
 
@@ -17,7 +21,11 @@ class Config:
     )
 
     # Engine options recomendadas (MVCC já é nativo do Postgres)
-    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+    # Definir search_path padrão via connect_args (multi-tenant AGENTS.MD §6)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "connect_args": {"options": "-c search_path=tenant_default,public"},
+    }
 
     # Desativa o rastreamento de alterações (economiza memória)
     SQLALCHEMY_TRACK_MODIFICATIONS = False

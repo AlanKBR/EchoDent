@@ -1,16 +1,11 @@
 from app import create_app, db
-from app.models import (
-    Usuario,
-    RoleEnum,
-    Paciente,
-    Procedimento,
-)
+from app.models import Paciente, Procedimento, RoleEnum, Usuario
 from app.services.financeiro_service import (
-    create_plano,
-    approve_plano,
     add_lancamento,
-    get_saldo_devedor_paciente,
+    approve_plano,
+    create_plano,
     create_recibo_avulso,
+    get_saldo_devedor_paciente,
 )
 
 

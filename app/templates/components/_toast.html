@@ -1,0 +1,28 @@
+{#
+  Toast Notification Component (EchoDent v4)
+
+  Uso:
+    {% include 'components/_toast.html' with tipo='success', mensagem='Salvo com sucesso!' %}
+
+  Tipos válidos: success, info, warning, error
+
+  HTMX OOB Support:
+    Para usar via OOB swap, adicionar: hx-swap-oob="afterbegin:#toast-container"
+#}
+{% set tipo = tipo | default('info') %}
+{% set mensagem = mensagem | default('Operação realizada.') %}
+
+{% set icon_map = {
+  'success': '✅',
+  'info': 'ℹ️',
+  'warning': '⚠️',
+  'error': '❌'
+} %}
+
+{% set icon = icon_map.get(tipo, 'ℹ️') %}
+
+<div class="toast toast-{{ tipo }}" role="alert" aria-live="polite" data-toast>
+  <span class="toast-icon" aria-hidden="true">{{ icon }}</span>
+  <span class="toast-message">{{ mensagem }}</span>
+  <button type="button" class="toast-close" aria-label="Fechar" data-toast-close>×</button>
+</div>

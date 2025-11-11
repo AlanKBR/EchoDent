@@ -6,13 +6,12 @@ from app import create_app, db
 
 
 @pytest.fixture
-def app_ctx():
-    """Provide an application context for service-level integration tests.
+def app():
+    """Application fixture for pytest-flask 'client' support.
 
-    Outside HTTP requests, the before_request hook that sets search_path
-    doesn't run. Ensure tenant routing explicitly for tests.
+    Provides an app configured for testing and ensures search_path
+    is set on all pooled connections.
     """
-    # Load environment variables before app creation
     try:
         load_dotenv()
     except Exception:
@@ -20,10 +19,10 @@ def app_ctx():
 
     app = create_app("testing")
     with app.app_context():
-        # Ensure search_path on ALL pooled connections for this app
         try:
+
             @event.listens_for(db.engine, "connect")
-            def _set_search_path(dbapi_connection, _):  # noqa: ANN001
+            def _set_search_path_2(dbapi_connection, _):  # noqa: ANN001
                 try:
                     cur = dbapi_connection.cursor()
                     cur.execute("SET search_path TO tenant_default, public")
@@ -32,4 +31,14 @@ def app_ctx():
                     pass
         except Exception:
             pass
+    return app
+
+
+@pytest.fixture
+def app_ctx(app):
+    """Application context bound to the same app used by the Flask client.
+
+    Avoids creating a second Flask instance which caused teardown conflicts.
+    """
+    with app.app_context():
         yield

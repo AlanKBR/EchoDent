@@ -1,12 +1,13 @@
 import os
-from sqlalchemy import create_engine, text
+
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
 
 load_dotenv()
-url = os.environ.get('DATABASE_URL')
-print('URL:', url)
+url = os.environ.get("DATABASE_URL")
+print("URL:", url)
 engine = create_engine(url)
-for schema in ['public', 'tenant_default']:
+for schema in ["public", "tenant_default"]:
     with engine.connect() as conn:
         res = conn.execute(
             text(

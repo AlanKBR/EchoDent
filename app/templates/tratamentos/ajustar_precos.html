@@ -1,0 +1,109 @@
+<!-- htmlhint doctype-first:false -->
+<!-- Modal para Ajuste de Preços em Massa -->
+<div class="modal-overlay" id="modal-ajustar-precos">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Ajustar Preços em Massa</h2>
+        <button type="button"
+            class="btn-close"
+            data-close-modal
+            aria-label="Fechar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form method="POST"
+                  action="{{ url_for('tratamentos_bp.ajustar_precos') }}"
+                  id="form-ajustar-precos">
+                <div class="modal-body">
+                    <!-- Instruções -->
+                    <div class="alert alert-info mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                        <div>
+                            <strong>Como funciona:</strong>
+                            <p class="mb-0">Informe o percentual de ajuste (positivo para aumento, negativo para desconto) e opcionalmente escolha uma categoria específica. O sistema mostrará um preview dos 10 primeiros tratamentos afetados.</p>
+                        </div>
+                    </div>
+
+                    <!-- Campos do formulário -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="percentual" class="form-label">Percentual de Ajuste (%)</label>
+                            <input type="number"
+                                   id="percentual"
+                                   name="percentual"
+                                   class="form-control"
+                                   step="0.1"
+                                   min="-100"
+                                   max="1000"
+                                   placeholder="Ex: 10 para +10%, -5 para -5%"
+                                   required
+                                   hx-post="{{ url_for('tratamentos_bp.preview_ajuste') }}"
+                                   hx-trigger="input changed delay:500ms"
+                                   hx-target="#preview-container"
+                                   hx-include="[name='categoria']">
+                            <small class="form-text text-muted">Use valores negativos para descontos</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="categoria" class="form-label">Aplicar a</label>
+                            <select id="categoria"
+                                    name="categoria"
+                                    class="form-select"
+                                    hx-post="{{ url_for('tratamentos_bp.preview_ajuste') }}"
+                                    hx-trigger="change"
+                                    hx-target="#preview-container"
+                                    hx-include="[name='percentual']">
+                                <option value="">Todas as categorias</option>
+                                {% for cat in categorias %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Container de Preview (HTMX Target) -->
+                    <div id="preview-container" class="preview-section">
+                        <div class="text-center text-muted py-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <p class="mt-2">Digite o percentual para visualizar o preview</p>
+                        </div>
+                    </div>
+
+                    <!-- Confirmação obrigatória -->
+                    <div class="form-check mt-4">
+                        <input type="checkbox"
+                               id="confirma-ajuste"
+                               class="form-check-input"
+                               data-confirm-checkbox>
+                        <label for="confirma-ajuste" class="form-check-label">
+                            <strong>Confirmo que revisei os novos valores e desejo aplicar este ajuste</strong>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+            <button type="button"
+                class="btn btn-secondary"
+                data-close-modal>
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                            class="btn btn-primary"
+                            id="btn-confirmar-ajuste"
+                            disabled>
+                        Aplicar Ajuste
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# comportamento movido para js/modal.js #}

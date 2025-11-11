@@ -1,8 +1,11 @@
 from __future__ import annotations
-from . import db
-from enum import Enum
+
 from datetime import datetime, timezone
+from enum import Enum
+
 from sqlalchemy.dialects.postgresql import JSONB
+
+from . import db
 
 
 # ----------------------------------
@@ -33,6 +36,9 @@ class GlobalSetting(db.Model):
     __table_args__ = {"schema": "public"}
     key = db.Column(db.String(100), primary_key=True)
     value = db.Column(db.Text, nullable=True)
+    previous_state = db.Column(
+        JSONB, nullable=True
+    )  # Estado anterior para rollback
 
 
 # ----------------------------------
@@ -52,6 +58,56 @@ class Tenant(db.Model):
     )
     created_at = db.Column(
         db.DateTime(timezone=True), server_default=db.func.now()
+    )
+
+
+# ----------------------------------
+# Informações da Clínica (tenant schema, singleton por tenant)
+# ----------------------------------
+class ClinicaInfo(db.Model):
+    __tablename__ = "clinica_info"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Dados empresariais
+    nome_clinica = db.Column(db.String(255), nullable=True)
+    # formato: 00.000.000/0000-00
+    cnpj = db.Column(db.String(18), nullable=True)
+    # CRO da clínica (opcional)
+    cro_clinica = db.Column(db.String(100), nullable=True)
+
+    # Contato
+    telefone = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
+
+    # Endereço
+    cep = db.Column(db.String(9), nullable=True)
+    logradouro = db.Column(db.String(200), nullable=True)
+    numero = db.Column(db.String(20), nullable=True)
+    complemento = db.Column(db.String(100), nullable=True)
+    bairro = db.Column(db.String(120), nullable=True)
+    cidade = db.Column(db.String(120), nullable=True)
+    estado = db.Column(db.String(2), nullable=True)
+
+    # Horário (JSON: {"seg": "08:00-18:00", "ter": "08:00-18:00"})
+    horario_funcionamento = db.Column(JSONB, nullable=True)
+
+    # Caminhos relativos: instance/media_storage/clinica/
+    logo_cabecalho_path = db.Column(db.String(500), nullable=True)
+    logo_rodape_path = db.Column(db.String(500), nullable=True)
+    marca_dagua_path = db.Column(db.String(500), nullable=True)
+    favicon_path = db.Column(db.String(500), nullable=True)
+
+    # Estado anterior para rollback (Fase 4.2)
+    previous_state = db.Column(
+        JSONB, nullable=True
+    )  # Snapshot dos campos antes da última atualização
+
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=db.func.now(),
+        onupdate=db.func.now(),
     )
 
 
@@ -101,6 +157,35 @@ class AnamneseStatus(str, Enum):
     CONCLUIDA = "CONCLUIDA"
 
 
+# Categorias de Procedimentos (Fase 2 - Tratamentos)
+class CategoriaEnum(str, Enum):
+    CLINICA_GERAL = "Clínica Geral"
+    ORTODONTIA = "Ortodontia"
+    ENDODONTIA = "Endodontia"
+    PERIODONTIA = "Periodontia"
+    PROTESE = "Prótese"
+    IMPLANTODONTIA = "Implantodontia"
+    ODONTOPEDIATRIA = "Odontopediatria"
+    CIRURGIA = "Cirurgia Bucomaxilofacial"
+    ESTETICA = "Estética/Cosmética"
+    OUTROS = "Outros"
+
+    CONCLUIDA = "CONCLUIDA"
+
+
+class SexoEnum(str, Enum):
+    """Enum clínico simplificado de sexo/identidade para fins de ficha.
+
+    Os valores persistidos são compactos (M/F/O), porém os nomes
+    dos membros evitam variáveis de uma letra para manter a qualidade
+    de linting e legibilidade de código.
+    """
+
+    MASCULINO = "M"
+    FEMININO = "F"
+    OUTRO = "O"
+
+
 # Status do Fechamento de Caixa (Regra 7)
 class CaixaStatus(str, Enum):
     ABERTO = "ABERTO"
@@ -121,7 +206,7 @@ class TipoDocumento(str, Enum):
 
 class Usuario(db.Model):
     __tablename__ = "usuarios"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -165,6 +250,52 @@ class Usuario(db.Model):
             return False
 
 
+class UserPreferences(db.Model):
+    """Preferências individuais do usuário (tenant-scoped)."""
+
+    __tablename__ = "user_preferences"
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(
+        db.Integer,
+        db.ForeignKey("usuarios.id"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    # Preferências de notificações (placeholder para futuro)
+    notificacoes_enabled = db.Column(
+        db.Boolean, nullable=False, default=True, server_default=db.true()
+    )
+    # Preferências de UI da lista de pacientes (colunas visíveis)
+    # Estrutura esperada (exemplo):
+    # {
+    #   "telefone": true,
+    #   "email": true,
+    #   "idade": false,
+    #   "sexo": false,
+    #   "data_ultimo_registro": true,
+    #   "status_anamnese": true,
+    #   "cpf": false,
+    #   "cidade": false
+    # }
+    paciente_lista_colunas = db.Column(JSONB, nullable=True)
+
+    # Outras preferências podem ser adicionadas no futuro
+    # (ex: densidade de interface, idioma, etc.)
+
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=db.func.now(),
+        onupdate=db.func.now(),
+    )
+
+    # Relacionamento
+    usuario = db.relationship("Usuario", backref="preferences")
+
+
 class Paciente(db.Model):
     __tablename__ = "pacientes"
 
@@ -179,6 +310,15 @@ class Paciente(db.Model):
     telefone = db.Column(db.String(20), nullable=True)
     email = db.Column(db.String(120), nullable=True)
     apelido = db.Column(db.String(100), nullable=True)
+    # Dados demográficos
+    sexo = db.Column(db.Enum(SexoEnum, name="sexo_enum"), nullable=True)
+
+    # Denormalizações para busca/ordenação rápida (atualizadas via services)
+    ultima_interacao_at = db.Column(
+        db.DateTime(timezone=True), nullable=True, index=True
+    )
+    # descrição curta do último evento (ex.: "Pagamento", "Anamnese")
+    ultima_interacao_desc = db.Column(db.String(100), nullable=True)
 
     # Endereço
     cep = db.Column(db.String(9), nullable=True)  # 00000-000
@@ -241,6 +381,21 @@ class Paciente(db.Model):
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Paciente {self.nome_completo}>"
 
+    @property
+    def idade(self) -> int | None:
+        """Calcula idade em anos a partir da data de nascimento."""
+        if not self.data_nascimento:
+            return None
+        from datetime import date
+
+        today = date.today()
+        born = self.data_nascimento
+        return (
+            today.year
+            - born.year
+            - ((today.month, today.day) < (born.month, born.day))
+        )
+
 
 class Anamnese(db.Model):
     __tablename__ = "anamneses"
@@ -285,10 +440,22 @@ class Anamnese(db.Model):
 
 class Procedimento(db.Model):
     __tablename__ = "procedimentos"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
+    # Código opcional (ex: TUSS, CBHPM)
+    codigo = db.Column(db.String(50), nullable=True)
+    # Categoria (especialidade odontológica) - OBRIGATÓRIA
+    categoria = db.Column(
+        db.Enum(CategoriaEnum, name="categoria_enum"),
+        nullable=False,
+        index=True,
+        # default aplicado no ORM (Python) para evitar falhas de testes
+        default=CategoriaEnum.CLINICA_GERAL,
+    )
     valor_padrao = db.Column(db.Numeric(10, 2), nullable=False)
+    # Descrição opcional
+    descricao = db.Column(db.Text, nullable=True)
     # Soft-delete: preservar histórico/auditoria (Regra 7)
     is_active = db.Column(
         db.Boolean,
@@ -296,9 +463,41 @@ class Procedimento(db.Model):
         default=True,
         server_default=db.true(),
     )
+    # Timestamps (created_at via server_default, updated_at via onupdate)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=db.func.now(),
+    )
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=True,
+        onupdate=db.func.now(),
+    )
 
     def __repr__(self) -> str:  # pragma: no cover
-        return f"<Procedimento {self.nome}>"
+        return f"<Procedimento {self.nome} ({self.categoria.value})>"
+
+    # Typed initializer to satisfy static type checkers and tests keyword usage
+    def __init__(
+        self,
+        nome: str | None = None,
+        valor_padrao=None,
+        is_active: bool = True,
+        codigo: str | None = None,
+        categoria: CategoriaEnum = CategoriaEnum.CLINICA_GERAL,
+        descricao: str | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        if nome is not None:
+            self.nome = nome
+        if valor_padrao is not None:
+            self.valor_padrao = valor_padrao
+        self.is_active = is_active
+        self.codigo = codigo
+        self.categoria = categoria
+        self.descricao = descricao
 
 
 class PlanoTratamento(db.Model):
@@ -306,7 +505,9 @@ class PlanoTratamento(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     paciente_id = db.Column(
-        db.Integer, db.ForeignKey("pacientes.id"), nullable=False
+        db.Integer,
+        db.ForeignKey("pacientes.id"),
+        nullable=False,
     )
 
     # Referência ao dentista (mesmo schema tenant)
@@ -340,6 +541,7 @@ class PlanoTratamento(db.Model):
 
     paciente = db.relationship("Paciente", back_populates="planos_tratamento")
 
+    # Typed relationship for better static analysis in tests (len/index)
     itens = db.relationship(
         "ItemPlano",
         back_populates="plano",
@@ -468,7 +670,8 @@ class ParcelaPrevista(db.Model):
     observacao = db.Column(db.String(100), nullable=True)
 
     plano = db.relationship(
-        "PlanoTratamento", back_populates="parcelas_previstas"
+        "PlanoTratamento",
+        back_populates="parcelas_previstas",
     )
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -488,7 +691,9 @@ class OdontogramaDenteEstado(db.Model):
     __tablename__ = "odontograma_dente_estado"
     __table_args__ = (
         db.UniqueConstraint(
-            "paciente_id", "tooth_id", name="uq_paciente_tooth_id"
+            "paciente_id",
+            "tooth_id",
+            name="uq_paciente_tooth_id",
         ),
     )
 
@@ -502,7 +707,8 @@ class OdontogramaDenteEstado(db.Model):
     estado_json = db.Column(JSONB, nullable=False)
 
     paciente = db.relationship(
-        "Paciente", back_populates="odontograma_estados"
+        "Paciente",
+        back_populates="odontograma_estados",
     )
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -534,15 +740,24 @@ class LogAuditoria(db.Model):
         index=True,
     )
     action = db.Column(
-        db.String(20), nullable=False
+        db.String(20),
+        nullable=False,
     )  # create | update | delete
     model_name = db.Column(db.String(200), nullable=False)
     model_id = db.Column(db.Integer, nullable=False)
     changes_json = db.Column(JSONB, nullable=False)
 
+    # Relação com usuário
+    user = db.relationship(
+        "Usuario",
+        foreign_keys=[user_id],
+        backref="audit_logs",
+    )
+
     def __repr__(self) -> str:  # pragma: no cover
         return (
-            f"<LogAuditoria {self.action} {self.model_name}({self.model_id})>"
+            f"<LogAuditoria {self.action} "
+            f"{self.model_name}({self.model_id})>"
         )
 
 
@@ -551,7 +766,9 @@ class MediaPaciente(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     paciente_id = db.Column(
-        db.Integer, db.ForeignKey("pacientes.id"), nullable=False
+        db.Integer,
+        db.ForeignKey("pacientes.id"),
+        nullable=False,
     )
     # Caminho relativo sob instance/media_storage/
     # Ex.: "1/panoramica_2025.jpg"
@@ -587,7 +804,8 @@ class TemplateDocumento(db.Model):
         nullable=False,
         index=True,
     )
-    template_jinja = db.Column(db.Text, nullable=False)
+    # Corpo do template usando string.Template (sem Jinja)
+    template_body = db.Column(db.Text, nullable=False)
     is_active = db.Column(
         db.Boolean, nullable=False, default=True, server_default=db.true()
     )
@@ -619,6 +837,13 @@ class LogEmissao(db.Model):
     usuario_id = db.Column(
         db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True
     )
+    # Dentista responsável pela emissão (delegação permitida)
+    dentista_responsavel_id = db.Column(
+        db.Integer,
+        db.ForeignKey("usuarios.id"),
+        nullable=False,
+        index=True,
+    )
     dados_chave = db.Column(JSONB, nullable=False)
     data_emissao = db.Column(
         db.DateTime(timezone=True),
@@ -628,10 +853,14 @@ class LogEmissao(db.Model):
 
     # Relacionamentos
     template = db.relationship(
-        "TemplateDocumento", back_populates="log_emissoes"
+        "TemplateDocumento",
+        back_populates="log_emissoes",
     )
     paciente = db.relationship("Paciente")
-    usuario = db.relationship("Usuario")
+    usuario = db.relationship("Usuario", foreign_keys=[usuario_id])
+    dentista_responsavel = db.relationship(
+        "Usuario", foreign_keys=[dentista_responsavel_id]
+    )
 
     def __repr__(self) -> str:  # pragma: no cover
         return (
@@ -645,7 +874,9 @@ class Agendamento(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     paciente_id = db.Column(
-        db.Integer, db.ForeignKey("pacientes.id"), nullable=False
+        db.Integer,
+        db.ForeignKey("pacientes.id"),
+        nullable=False,
     )
     # Referência ao dentista (mesmo schema tenant)
     dentista_id = db.Column(

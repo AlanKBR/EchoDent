@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 
-def format_datetime_br(dt_utc: Optional[datetime]) -> str:
+def format_datetime_br(dt_utc: datetime | None) -> str:
     """Format a timezone-aware UTC datetime as dd/mm/YYYY HH:MM.
 
     - If dt_utc is None, return an empty string.

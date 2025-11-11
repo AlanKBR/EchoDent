@@ -13,16 +13,16 @@ Usage (PowerShell):
   # or
   python scripts/purge_dev_users.py --force
 """
+
 from __future__ import annotations
 
 import argparse
 import os
-from typing import List
 
 from app import create_app, db
 from app.models import Usuario
 
-ALLOWED_USERNAMES: List[str] = [
+ALLOWED_USERNAMES: list[str] = [
     "dev_admin",
     "dev_dentista",
     "dev_secretaria",

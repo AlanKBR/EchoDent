@@ -1,19 +1,22 @@
-import pytest
-from app import db
-from app.services import paciente_service
-from app.services import financeiro_service
-from app.services import odontograma_service
-from app.models import (
-    Paciente,
-    Usuario,
-    Procedimento,
-    PlanoTratamento,
-    ItemPlano,
-    LancamentoFinanceiro,
-    RoleEnum,
-)
 from decimal import Decimal
 
+import pytest
+
+from app import db
+from app.models import (
+    ItemPlano,
+    LancamentoFinanceiro,
+    Paciente,
+    PlanoTratamento,
+    Procedimento,
+    RoleEnum,
+    Usuario,
+)
+from app.services import (
+    financeiro_service,
+    odontograma_service,
+    paciente_service,
+)
 
 # app_ctx fixture moved to tests/conftest.py
 
@@ -36,7 +39,7 @@ def test_service_sanitization_rule_paciente_nome_trim(app_ctx):
     p = db.session.get(Paciente, novo.id)
     assert p is not None
     assert p.nome_completo == "Nome Sujo"  # trim aplicado
-    assert p.telefone == "1199999-0000"    # trim aplicado
+    assert p.telefone == "1199999-0000"  # trim aplicado
 
 
 def _get_any_paciente_and_dentista_ids():
@@ -164,12 +167,15 @@ def test_regra_trava_de_caixa_estorno(app_ctx):
     assert lanc_db is not None and lanc_db.data_lancamento is not None
     dia = lanc_db.data_lancamento.date()
 
-    # Fechar o caixa do dia
-    financeiro_service.fechar_caixa_dia(
-        data_caixa=dia,
-        saldo_apurado=Decimal("0.00"),
-        usuario_id=1,
-    )
+    # Fechar o caixa do dia (idempotente para testes): ignorar segunda chamada
+    try:
+        financeiro_service.fechar_caixa_dia(
+            data_caixa=dia,
+            saldo_apurado=Decimal("0.00"),
+            usuario_id=1,
+        )
+    except ValueError:
+        pass
 
     with pytest.raises(ValueError):
         financeiro_service.add_lancamento_estorno(
@@ -260,7 +266,7 @@ def test_regra_soma_burra_saldo_negativo_credito(app_ctx):
     assert comp["saldo_devedor"] == Decimal("-50.00")
 
 
-from app.models import TimelineEvento, LogAuditoria  # noqa: E402
+from app.models import LogAuditoria, TimelineEvento  # noqa: E402
 
 
 def test_regra_timeline_double_write(app_ctx):
@@ -338,9 +344,7 @@ def test_regra_odontograma_snapshot_admin_guard(app_ctx):
         db.session.commit()
 
     user_admin = (
-        db.session.query(Usuario)
-        .filter(Usuario.role == "ADMIN")
-        .first()
+        db.session.query(Usuario).filter(Usuario.role == "ADMIN").first()
     )
     if user_admin is None:
         user_admin = Usuario(

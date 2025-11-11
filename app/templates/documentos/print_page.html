@@ -9,12 +9,6 @@
     <div class="documento-container page-break-avoid">
         {{ html_documento|safe }}
     </div>
-    <script>
-        window.onload = function() {
-            window.print();
-            // Opcional: fechar a aba após imprimir
-            // window.onafterprint = function() { window.close(); };
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/print_page.js') }}" defer></script>
 </body>
 </html>

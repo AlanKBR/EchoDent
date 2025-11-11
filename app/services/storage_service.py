@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from typing import BinaryIO, Optional
+from typing import BinaryIO
 
 from flask import current_app
 
@@ -22,7 +22,7 @@ class BaseStorageDriver(ABC):
         self,
         file_stream: BinaryIO,
         relative_path: str,
-        content_type: Optional[str] = None,
+        content_type: str | None = None,
     ) -> str:
         """Persist file and return a reference/URL."""
         raise NotImplementedError
@@ -51,7 +51,7 @@ class LocalStorageDriver(BaseStorageDriver):
         self,
         file_stream: BinaryIO,
         relative_path: str,
-        content_type: Optional[str] = None,
+        content_type: str | None = None,
     ) -> str:
         abs_path = self._abs_path(relative_path)
         os.makedirs(os.path.dirname(abs_path), exist_ok=True)
@@ -95,7 +95,7 @@ class S3StorageDriver(BaseStorageDriver):
         self,
         file_stream: BinaryIO,
         relative_path: str,
-        content_type: Optional[str] = None,
+        content_type: str | None = None,
     ) -> str:
         data = file_stream.read()
         if isinstance(data, str):

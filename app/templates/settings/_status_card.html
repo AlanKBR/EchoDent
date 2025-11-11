@@ -1,0 +1,199 @@
+{# Card de Status da Configuração - Fase 4.3 #}
+{# A variável config_status deve ser passada no contexto da rota #}
+
+<div class="card mb-4 status-card">
+  <div class="card-body">
+    <div class="status-header">
+      <div class="status-header-content">
+        <h3 class="status-title">📊 Status da Configuração</h3>
+        <p class="text-muted">Complete todas as informações para uma melhor experiência</p>
+      </div>
+
+      <div class="status-percentage">
+        <div class="circular-progress" data-percentage="{{ config_status.percentage }}">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg"
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <path class="circle"
+              stroke-dasharray="{{ config_status.percentage }}, 100"
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <text x="18" y="20.35" class="percentage-text">{{ config_status.percentage }}%</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-checklist mt-4">
+      {% for section in config_status.checklist %}
+      <div class="status-section">
+        <div class="status-section-header">
+          {% if section.completed %}
+            <span class="status-icon status-icon-complete">✅</span>
+          {% elif section.partial %}
+            <span class="status-icon status-icon-partial">⚠️</span>
+          {% else %}
+            <span class="status-icon status-icon-incomplete">⭕</span>
+          {% endif %}
+
+          <strong>{{ section.label }}</strong>
+
+          <span class="status-section-count">
+            ({{ section['items'] | selectattr('completed') | list | length }}/{{ section['items'] | length }})
+          </span>
+        </div>
+
+        <div class="status-section-items">
+          {% for item in section['items'] %}
+          <div class="status-item">
+            {% if item.completed %}
+              <span class="status-item-icon">✓</span>
+            {% else %}
+              <span class="status-item-icon status-item-icon-pending">○</span>
+            {% endif %}
+            <span class="status-item-name {% if not item.completed %}text-muted{% endif %}">
+              {{ item.name }}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  {% if config_status.percentage != 100 %}
+    <div class="alert alert-info mt-4 mb-0">
+      <strong>💡 Dica:</strong> Complete as informações faltantes para aproveitar todos os recursos do sistema.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+/* Status Card - Fase 4.3 */
+.status-card {
+  border-left: 4px solid var(--color-primary-main);
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.status-header-content {
+  flex: 1;
+}
+
+.status-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Circular Progress */
+.status-percentage {
+  flex-shrink: 0;
+}
+
+.circular-progress {
+  width: 80px;
+  height: 80px;
+}
+
+.circular-chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.circle-bg {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 2.8;
+}
+
+.circle {
+  fill: none;
+  stroke: var(--color-primary-main);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.percentage-text {
+  fill: var(--color-text-primary);
+  font-size: 0.5em;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+/* Checklist */
+.status-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.status-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.status-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.95rem;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.status-icon {
+  font-size: 1.1rem;
+}
+
+.status-section-count {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.status-section-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-left: var(--space-4);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+}
+
+.status-item-icon {
+  color: var(--color-success, #10b981);
+  font-weight: bold;
+}
+
+.status-item-icon-pending {
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+}
+
+.status-item-name {
+  color: var(--color-text-primary);
+}
+</style>

@@ -1,0 +1,69 @@
+{# Modal de detalhes do log de auditoria (HTMX fragment) #}
+<div class="modal-confirm-overlay">
+  <div class="modal-confirm-backdrop" onclick="this.parentElement.remove()"></div>
+
+  <div class="modal-confirm-content" style="max-width: 700px;">
+    <h3>Detalhes do Log de Auditoria</h3>
+
+    <div class="mt-4">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <strong>Data/Hora:</strong>
+          <div>{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</div>
+        </div>
+        <div class="col-md-6">
+          <strong>Usuário:</strong>
+          <div>
+            {% if log.user %}
+              {{ log.user.nome_completo or log.user.username }}
+              <small class="text-muted">(@{{ log.user.username }})</small>
+            {% else %}
+              <span class="text-muted">Sistema</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <strong>Ação:</strong>
+          <div>
+            {% if log.action == 'create' %}
+              <span class="badge badge-success">{{ audit_service.format_action_name(log.action) }}</span>
+            {% elif log.action == 'update' or log.action == 'UPDATE_MASSA' %}
+              <span class="badge badge-primary">{{ audit_service.format_action_name(log.action) }}</span>
+            {% elif log.action == 'delete' %}
+              <span class="badge badge-danger">{{ audit_service.format_action_name(log.action) }}</span>
+            {% else %}
+              <span class="badge badge-secondary">{{ audit_service.format_action_name(log.action) }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <strong>Tabela/Modelo:</strong>
+          <div>{{ audit_service.format_model_name(log.model_name) }}</div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <strong>Registro ID:</strong>
+          <div><code>#{{ log.model_id }}</code></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <strong>Mudanças (JSON):</strong>
+          <pre class="mt-2 p-3" style="background-color: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--border-radius-medium); max-height: 400px; overflow-y: auto; font-size: 0.85rem;"><code>{{ log.changes_json | tojson(indent=2) }}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions mt-4">
+      <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-confirm-overlay').remove()">
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>

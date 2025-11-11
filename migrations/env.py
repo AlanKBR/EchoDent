@@ -1,12 +1,12 @@
 import logging
 import os
-from dotenv import load_dotenv
 from logging.config import fileConfig
-import sqlalchemy as sa
 
+import sqlalchemy as sa
+from alembic import context
+from dotenv import load_dotenv
 from flask import current_app
 
-from alembic import context
 from app import db as main_db
 
 # this is the Alembic Config object, which provides
@@ -17,36 +17,39 @@ load_dotenv()
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
-logger = logging.getLogger('alembic.env')
+logger = logging.getLogger("alembic.env")
 
 
 def get_engine():
     try:
         # this works with Flask-SQLAlchemy<3 and Alchemical
-        return current_app.extensions['migrate'].db.get_engine()
+        return current_app.extensions["migrate"].db.get_engine()
     except (TypeError, AttributeError):
         # this works with Flask-SQLAlchemy>=3
-        return current_app.extensions['migrate'].db.engine
+        return current_app.extensions["migrate"].db.engine
 
 
 def get_engine_url():
     try:
-        return get_engine().url.render_as_string(hide_password=False).replace(
-            '%', '%%')
+        return (
+            get_engine()
+            .url.render_as_string(hide_password=False)
+            .replace("%", "%%")
+        )
     except AttributeError:
-        return str(get_engine().url).replace('%', '%%')
-    
+        return str(get_engine().url).replace("%", "%%")
+
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 target_metadata = main_db.metadata
 # Prefer SHADOW_DATABASE_URL (Hybrid v4 - Shadow DB). Fallback to app engine.
-shadow_url = os.environ.get('SHADOW_DATABASE_URL')
+shadow_url = os.environ.get("SHADOW_DATABASE_URL")
 if shadow_url:
-    config.set_main_option('sqlalchemy.url', shadow_url)
+    config.set_main_option("sqlalchemy.url", shadow_url)
 else:
-    config.set_main_option('sqlalchemy.url', get_engine_url())
-target_db = current_app.extensions['migrate'].db
+    config.set_main_option("sqlalchemy.url", get_engine_url())
+target_db = current_app.extensions["migrate"].db
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -55,7 +58,7 @@ target_db = current_app.extensions['migrate'].db
 
 
 def get_metadata():
-    if hasattr(target_db, 'metadatas'):
+    if hasattr(target_db, "metadatas"):
         return target_db.metadatas[None]
     return target_db.metadata
 
@@ -96,25 +99,25 @@ def run_migrations_online():
     # when there are no changes to the schema
     # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
     def process_revision_directives(context, revision, directives):
-        if getattr(config.cmd_opts, 'autogenerate', False):
+        if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
             # Support multi-pass autogenerate where multiple UpgradeOps
             # collections are produced (public + tenants). When present,
             # use upgrade_ops_list; otherwise fall back to single upgrade_ops.
-            uol = getattr(script, 'upgrade_ops_list', None)
+            uol = getattr(script, "upgrade_ops_list", None)
             if uol is not None:
                 # If all per-pass ops are empty, drop the revision. Otherwise,
                 # keep as-is (no attempt to mutate the internal list, which
                 # may be read-only depending on Alembic version).
                 if all(ops.is_empty() for ops in uol):
                     directives[:] = []
-                    logger.info('No changes in schema detected.')
+                    logger.info("No changes in schema detected.")
             else:
                 if script.upgrade_ops.is_empty():
                     directives[:] = []
-                    logger.info('No changes in schema detected.')
+                    logger.info("No changes in schema detected.")
 
-    conf_args = current_app.extensions['migrate'].configure_args
+    conf_args = current_app.extensions["migrate"].configure_args
     if conf_args.get("process_revision_directives") is None:
         conf_args["process_revision_directives"] = process_revision_directives
 
@@ -130,9 +133,7 @@ def run_migrations_online():
             if table is None:
                 table = getattr(obj, "parent", None)
             schema = (
-                getattr(table, "schema", None)
-                if table is not None
-                else None
+                getattr(table, "schema", None) if table is not None else None
             )
             return schema == "public"
         return True
@@ -146,9 +147,7 @@ def run_migrations_online():
             if table is None:
                 table = getattr(obj, "parent", None)
             schema = (
-                getattr(table, "schema", None)
-                if table is not None
-                else None
+                getattr(table, "schema", None) if table is not None else None
             )
             return schema is None or schema != "public"
         return True
@@ -201,9 +200,7 @@ def run_migrations_online():
                         isolation_level="AUTOCOMMIT"
                     )
                     ac_conn.execute(
-                        sa.text(
-                            f"CREATE SCHEMA IF NOT EXISTS {tenant_schema}"
-                        )
+                        sa.text(f"CREATE SCHEMA IF NOT EXISTS {tenant_schema}")
                     )
                 except Exception:
                     pass
@@ -211,9 +208,7 @@ def run_migrations_online():
             with engine.begin() as connection:
                 try:
                     connection.execute(
-                        sa.text(
-                            f"SET search_path TO {tenant_schema}, public"
-                        )
+                        sa.text(f"SET search_path TO {tenant_schema}, public")
                     )
                 except Exception:
                     pass

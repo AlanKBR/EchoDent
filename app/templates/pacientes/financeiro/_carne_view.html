@@ -10,7 +10,7 @@
       </tr>
     </thead>
     <tbody>
-      {% if lista_retorno and lista_retorno|length > 0 %}
+  {% if lista_retorno %}
         {% for item in lista_retorno %}
           {% set parcela = item.parcela %}
           {% set status = item.status %}
