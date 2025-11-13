@@ -23,8 +23,8 @@ from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import RoleEnum, Usuario
+from app.services import audit_service  # Fase 4.4 (Timeline)
 from app.services import (
-    audit_service,  # Fase 4.4 (Timeline)
     clinica_service,
     log_service,
     storage_service,
@@ -78,7 +78,10 @@ def clinica_update():
         print("\n===== clinica_update() CHAMADA =====")
         print(f"Form data keys: {list(request.form.keys())}")
 
-        data = {
+        # Use tipos amplos para evitar restrição de tipo do dicionário
+        from typing import Any
+
+        data: dict[str, Any] = {
             "nome_clinica": request.form.get("nome_clinica"),
             "cnpj": request.form.get("cnpj"),
             "cro_clinica": request.form.get("cro_clinica"),
@@ -179,11 +182,19 @@ def clinica_upload_logo():
     try:
         # Determinar subpasta
         subfolder = f"clinica/{logo_type}"
-        filename = secure_filename(file.filename)
+        filename = secure_filename(file.filename or "")
 
-        # Salvar arquivo
-        file_path = storage_service.salvar_arquivo(
-            file, subfolder=subfolder, filename=filename
+        # Salvar arquivo usando driver configurado
+        storage = storage_service.get_storage_service()
+        relative_path = f"{subfolder}/{filename}"
+        # FileStorage provê .stream e .mimetype
+        from typing import BinaryIO, cast
+
+        file_stream = cast(BinaryIO, file.stream)
+        file_path = storage.save_file(
+            file_stream,
+            relative_path=relative_path,
+            content_type=file.mimetype,
         )
 
         # Atualizar path no banco
@@ -285,7 +296,7 @@ def usuario_update():
 @login_required
 def usuario_update_color():
     """Atualiza a cor do profissional na agenda (Usuario.color)."""
-    color = request.form.get("color", "").strip()
+    color = (request.form.get("color") or "").strip()
 
     # Validação básica de cor hex
     if color and not theme_service.is_valid_hex_color(color):
@@ -294,6 +305,8 @@ def usuario_update_color():
 
     try:
         user = db.session.get(Usuario, current_user.id)
+        if not user:
+            raise ValueError("Usuário não encontrado.")
         user.color = color if color else None
         db.session.commit()
         flash("Cor do profissional atualizada!", "success")
@@ -353,12 +366,13 @@ def admin_criar_usuario():
 
         from werkzeug.security import generate_password_hash
 
-        novo_usuario = Usuario(
-            username=username,
-            password_hash=generate_password_hash(password),
-            role=role,
-            nome_completo=nome_completo,
-        )
+        user_kwargs = {
+            "username": username,
+            "password_hash": generate_password_hash(password),
+            "role": role,
+            "nome_completo": nome_completo,
+        }
+        novo_usuario = Usuario(**user_kwargs)  # type: ignore[call-arg]
         db.session.add(novo_usuario)
         db.session.commit()
 
@@ -520,7 +534,7 @@ def integrations_save(api_name):
         secret = request.form.get("secret", "").strip()
 
         sucesso_token = api_keys_service.set_api_key(
-            api_keys_service.API_KEY_GATEWAY_PAGAMENTO_TOKEN, token or None
+            api_keys_service.API_KEY_GATEWAY_PAGAMENTO, token or None
         )
         sucesso_secret = api_keys_service.set_api_key(
             api_keys_service.API_KEY_GATEWAY_PAGAMENTO_SECRET, secret or None
@@ -592,19 +606,17 @@ def audit_logs():
     # Datas
     date_from = None
     date_to = None
-    if request.args.get("date_from"):
+    df = request.args.get("date_from")
+    if df:
         try:
-            date_from = datetime.strptime(
-                request.args.get("date_from"), "%Y-%m-%d"
-            )
+            date_from = datetime.strptime(df, "%Y-%m-%d")
         except ValueError:
             pass
 
-    if request.args.get("date_to"):
+    dt = request.args.get("date_to")
+    if dt:
         try:
-            date_to = datetime.strptime(
-                request.args.get("date_to"), "%Y-%m-%d"
-            )
+            date_to = datetime.strptime(dt, "%Y-%m-%d")
         except ValueError:
             pass
 

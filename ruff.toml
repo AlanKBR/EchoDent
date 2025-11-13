@@ -15,7 +15,6 @@ select = [
   "W",  # pycodestyle warnings
   "B",  # bugbear
   "UP", # pyupgrade
-  "I",  # isort (imports ordering)
   "C90" # complexity (mccabe)
 ]
 ignore = [
@@ -26,7 +25,7 @@ ignore = [
   "B027",  # Allow optional empty abstract methods as project convention
 ]
 
-fixable = ["E", "F", "W", "B", "UP", "I"]
+fixable = ["E", "F", "W", "B", "UP"]
 
 # Exclude generated/migration/media artifacts
 exclude = [
